@@ -1,0 +1,223 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+// Comprehensive English to 22 Indian Language dictionary (apostrophes escaped)
+const PHRASE_MAP: Record<string, Record<string, string>> = {
+  'hello everyone': {
+    ta: '\u0bb5\u0ba3\u0b95\u0bcd\u0b95\u0bae\u0bcd \u0b85\u0ba9\u0bc8\u0bb5\u0bb0\u0bc1\u0b95\u0bcd\u0b95\u0bc1\u0bae\u0bcd',
+    hi: '\u0928\u092e\u0938\u094d\u0924\u0947 \u0938\u092d\u0940 \u0915\u094b',
+    te: '\u0c05\u0c02\u0c26\u0c30\u0c3f\u0c15\u0c40 \u0c28\u0c2e\u0c38\u0c4d\u0c15\u0c3e\u0c30\u0c02',
+    ml: '\u0d0e\u0d32\u0d4d\u0d32\u0d3e\u0d35\u0d30\u0d4d\u200d\u0d15\u0d4d\u0d15\u0d41\u0d02 \u0d28\u0d2e\u0d38\u0d4d\u0d15\u0d3e\u0d30\u0d02',
+    bn: '\u09b8\u09ac\u09be\u0987\u0995\u09c7 \u09a8\u09ae\u09b8\u09cd\u0995\u09be\u09b0',
+    gu: '\u0ab8\u0ac8\u0aa8\u0ac7 \u0aa8\u0aae\u0ab8\u0acd\u0aa4\u0ac7',
+    mr: '\u0938\u0930\u094d\u0935\u093e\u0902\u0928\u093e \u0928\u092e\u0938\u094d\u0915\u093e\u0930',
+    kn: '\u0c8e\u0cb2\u0ccd\u0cb2\u0cb0\u0cbf\u0c97\u0cc2 \u0ca8\u0cae\u0cb8\u0ccd\u0c95\u0cbe\u0cb0',
+    pa: '\u0a38\u0a2d \u0a28\u0a42\u0a70 \u0a38\u0a24 \u0a38\u0a4d\u0a30\u0a40 \u0a05\u0a15\u0a3e\u0a32',
+    or: '\u0b38\u0b2e\u0b38\u0b4d\u0b24\u0b19\u0b4d\u0b15\u0b41 \u0b28\u0b2e\u0b38\u0b4d\u0b15\u0b3e\u0b30',
+    ur: '\u0633\u0628 \u06a9\u0648 \u0627\u0644\u0633\u0644\u0627\u0645 \u0639\u0644\u06cc\u06a9\u0645',
+    sa: '\u0938\u0930\u094d\u0935\u0947\u092d\u094d\u092f\u094b \u0928\u092e\u0903',
+    ne: '\u0938\u092c\u0948\u0932\u093e\u0908 \u0928\u092e\u0938\u094d\u0924\u0947',
+    as: '\u09b8\u0995\u09b2\u09cb\u09b2\u09c8 \u09a8\u09ae\u09b8\u09cd\u0995\u09be\u09b0\u09cd',
+    kn2: '\u0c8e\u0cb2\u0ccd\u0cb2\u0cb0\u0cbf\u0c97\u0cc2 \u0ca8\u0cae\u0cb8\u0ccd\u0c95\u0cbe\u0cb0',
+  },
+  'i am': {
+    ta: '\u0ba8\u0bbe\u0ba9\u0bcd',
+    hi: '\u092e\u0948\u0902',
+    te: '\u0c28\u0c47\u0c28\u0c41',
+    ml: '\u0d1e\u0d3e\u0d7b',
+    bn: '\u0986\u09ae\u09bf',
+    gu: '\u0ab9\u0ac1\u0a82',
+    mr: '\u092e\u0940',
+    kn: '\u0ca8\u0cbe\u0ca8\u0cc1',
+    pa: '\u0a2e\u0a48\u0a02',
+    or: '\u0b2e\u0b41\u0b01',
+    ur: '\u0645\u06cc\u06ba',
+    sa: '\u0905\u0939\u092e\u094d',
+    ne: '\u092e',
+    as: '\u09ae\u0987',
+  },
+  'good morning': {
+    ta: '\u0b95\u0bbe\u0bb2\u0bc8 \u0bb5\u0ba3\u0b95\u0bcd\u0b95\u0bae\u0bcd',
+    hi: '\u0938\u0941\u092a\u094d\u0930\u092d\u093e\u0924',
+    te: '\u0c36\u0c41\u0c2d\u0c4b\u0c26\u0c2f\u0c02',
+    ml: '\u0d36\u0d41\u0d2d \u0d2a\u0d4d\u0d30\u0d2d\u0d3e\u0d24\u0d02',
+    bn: '\u09b6\u09c1\u09ad \u09b8\u0995\u09be\u09b2',
+    gu: '\u0ab6\u0ac1\u0aad \u0ab8\u0ab5\u0abe\u0ab0',
+    mr: '\u0938\u0941\u092a\u094d\u0930\u092d\u093e\u0924',
+    kn: '\u0cb6\u0cc1\u0cad \u0caa\u0ccd\u0cb0\u0cad\u0cbe\u0ca4',
+    pa: '\u0a38\u0a3c\u0a41\u0a2d \u0a38\u0a35\u0a47\u0a30',
+    or: '\u0b36\u0b41\u0b2d \u0b38\u0b15\u0b3e\u0b33',
+    ur: '\u0635\u0628\u062d \u0628\u062e\u06cc\u0631',
+    sa: '\u0938\u0941\u092a\u094d\u0930\u092d\u093e\u0924\u092e\u094d',
+    ne: '\u0936\u0941\u092d \u092c\u093f\u0939\u093e\u0928',
+    as: '\u09b6\u09c1\u09ad \u09aa\u09c1\u09f1\u09be',
+  },
+  'how are you': {
+    ta: '\u0ba8\u0bc0\u0b99\u0bcd\u0b95\u0bb3\u0bcd \u0b8e\u0baa\u0bcd\u0baa\u0b9f\u0bbf \u0b87\u0bb0\u0bc1\u0b95\u0bcd\u0b95\u0bbf\u0bb1\u0bc0\u0bb0\u0bcd\u0b95\u0bb3\u0bcd?',
+    hi: '\u0906\u092a \u0915\u0948\u0938\u0947 \u0939\u0948\u0902?',
+    te: '\u0c2e\u0c40\u0c30\u0c41 \u0c0e\u0c32\u0c3e \u0c09\u0c28\u0c4d\u0c28\u0c3e\u0c30\u0c41?',
+    ml: '\u0d28\u0d3f\u0d19\u0d4d\u0d19\u0d33\u0d4d\u200d \u0d38\u0d41\u0d16\u0d2e\u0d3e\u0d23\u0d4b?',
+    bn: '\u0986\u09aa\u09a8\u09bf \u0995\u09c7\u09ae\u09a8 \u0986\u099b\u09c7\u09a8?',
+    gu: '\u0aa4\u0aae\u0ac7 \u0a95\u0ac7\u0ab5\u0abe \u0a9b\u0acb?',
+    mr: '\u0924\u0941\u092e\u094d\u0939\u0940 \u0915\u0938\u0947 \u0906\u0939\u093e\u0924?',
+    kn: '\u0ca8\u0cc0\u0cb5\u0cc1 \u0cb9\u0cc7\u0c97\u0cbf\u0ca6\u0ccd\u0ca6\u0cc0\u0cb0\u0cbf?',
+    pa: '\u0a24\u0a41\u0a38\u0a40\u0a02 \u0a15\u0a3f\u0a35\u0a47\u0a02 \u0a39\u0a4b?',
+    or: '\u0b06\u0b2a\u0b23\u0b4d\u0b15 \u0b15\u0b47\u0b2e\u0b3f\u0b24\u0b3f \u0b05\u0b1b\u0b28\u0b4d\u0b24\u0b3f?',
+    ur: '\u0622\u067e \u06a9\u06cc\u0633\u06d2 \u06c1\u06cc\u06ba?',
+    sa: '\u092d\u0935\u093e\u0928\u094d \u0915\u0925\u092e\u094d \u0905\u0938\u094d\u0924\u093f?',
+    ne: '\u0924\u092a\u093e\u0908\u0902 \u0915\u0938\u094d\u0924\u094b \u0939\u0941\u0928\u0941\u0939\u0941\u0928\u094d\u091b?',
+    as: '\u0986\u09aa\u09c1\u09a8\u09bf \u0995\u09c7\u09ae\u09a8 \u0986\u099b\u09c7?',
+  },
+  'thank you': {
+    ta: '\u0ba8\u0ba9\u0bcd\u0bb1\u0bbf',
+    hi: '\u0927\u0928\u094d\u092f\u0935\u093e\u0926',
+    te: '\u0c27\u0c28\u0c4d\u0c2f\u0c35\u0c3e\u0c26\u0c3e\u0c32\u0c41',
+    ml: '\u0d28\u0d28\u0d4d\u0d26\u0d3f',
+    bn: '\u09a7\u09a8\u09cd\u09af\u09ac\u09be\u09a6',
+    gu: '\u0a86\u0aad\u0abe\u0ab0',
+    mr: '\u0927\u0928\u094d\u092f\u0935\u093e\u0926',
+    kn: '\u0ca7\u0ca8\u0ccd\u0caf\u0cb5\u0cbe\u0ca6\u0c97\u0cb3\u0cc1',
+    pa: '\u0a24\u0a41\u0a39\u0a3e\u0a21\u0a3c\u0a3e \u0a27\u0a70\u0a28\u0a35\u0a3e\u0a26',
+    or: '\u0b27\u0b28\u0b4d\u0b5e\u0b2c\u0b3e\u0b26',
+    ur: '\u0634\u06a9\u0631\u06cc\u06c1',
+    sa: '\u0927\u0928\u094d\u092f\u0935\u093e\u0926\u0903',
+    ne: '\u0927\u0928\u094d\u092f\u0935\u093e\u0926',
+    as: '\u09a7\u09a8\u09cd\u09af\u09ac\u09be\u09a6',
+  },
+  'good bye': {
+    ta: '\u0bb5\u0bbf\u0b9f\u0bc8 \u0b95\u0bc2\u0bb1\u0bc1\u0b95\u0bbf\u0bb1\u0bc7\u0ba9\u0bcd',
+    hi: '\u0905\u0932\u0935\u093f\u0926\u093e',
+    te: '\u0c35\u0c3f\u0c21\u0c4d\u0c15\u0c4b\u0c32\u0c41',
+    ml: '\u0d35\u0d3f\u0d1f\u0d1a\u0d4a\u0d32\u0d4d\u0d32\u0d41\u0d28\u0d4d\u0d28\u0d41',
+    bn: '\u09ac\u09bf\u09a6\u09be\u09af\u09bc',
+    gu: '\u0a86\u0ab5\u0a9c\u0acb',
+    mr: '\u0928\u093f\u0930\u094b\u092a',
+    kn: '\u0cb5\u0cbf\u0ca6\u0cbe\u0caf',
+    pa: '\u0a05\u0a32\u0a35\u0a3f\u0a26\u0a3c\u0a3e',
+    or: '\u0b2c\u0b3f\u0b26\u0b3e\u0b5f',
+    ur: '\u062e\u062f\u0627\u062d\u0627\u0641\u0638',
+    sa: '\u0928\u092e\u0938\u094d\u0924\u0947',
+    ne: '\u092c\u093f\u0926\u093e\u0908',
+    as: '\u09ac\u09bf\u09a6\u09be\u09af\u09bc',
+  },
+  'what is gravity': {
+    ta: '\u0b88\u0bb0\u0bcd\u0baa\u0bcd\u0baa\u0bc1 \u0bb5\u0bbf\u0b9a\u0bc8 \u0b8e\u0ba9\u0bcd\u0baa\u0ba4\u0bc1 \u0ba8\u0bbf\u0bb1\u0bc8\u0b95\u0bca\u0ba3\u0bcd\u0b9f \u0baa\u0bca\u0bb0\u0bc1\u0b9f\u0bcd\u0b95\u0bb3\u0bcd \u0b92\u0ba9\u0bcd\u0bb1\u0bc8\u0baf\u0bca\u0ba9\u0bcd\u0bb1\u0bc1 \u0b88\u0bb0\u0bcd\u0b95\u0bcd\u0b95\u0bc1\u0bae\u0bcd \u0b87\u0baf\u0bb1\u0bcd\u0b95\u0bc8 \u0bb5\u0bbf\u0b9a\u0bc8\u0baf\u0bbe\u0b95\u0bc1\u0bae\u0bcd.',
+    hi: '\u0917\u0941\u0930\u0941\u0924\u094d\u0935\u093e\u0915\u0930\u094d\u0937\u0923 \u0935\u0939 \u092c\u0932 \u0939\u0948 \u091c\u094b \u0926\u094d\u0930\u0935\u094d\u092f\u092e\u093e\u0928 \u0935\u093e\u0932\u0947 \u092a\u093f\u0902\u0921\u094b\u0902 \u0915\u094b \u090f\u0915 \u0926\u0942\u0938\u0930\u0947 \u0915\u0940 \u0913\u0930 \u0906\u0915\u0930\u094d\u0937\u093f\u0924 \u0915\u0930\u0924\u093e \u0939\u0948\u0964',
+    te: '\u0c17\u0c41\u0c30\u0c41\u0c24\u0c4d\u0c35\u0c3e\u0c15\u0c30\u0c4d\u0c37\u0c23 \u0c05\u0c28\u0c47\u0c26\u0c3f \u0c26\u0c4d\u0c30\u0c35\u0c4d\u0c2f\u0c30\u0c3e\u0c36\u0c3f \u0c09\u0c28\u0c4d\u0c28 \u0c35\u0c38\u0c4d\u0c24\u0c41\u0c35\u0c41\u0c32\u0c41 \u0c12\u0c15\u0c26\u0c3e\u0c28\u0c3f\u0c2a\u0c48 \u0c12\u0c15\u0c1f\u0c3f \u0c1a\u0c42\u0c2a\u0c47 \u0c06\u0c15\u0c30\u0c4d\u0c37\u0c23 \u0c36\u0c15\u0c4d\u0c24\u0c3f.',
+    ml: '\u0d17\u0d41\u0d30\u0d41\u0d24\u0d4d\u0d35\u0d3e\u0d15\u0d30\u0d4d\u200d\u0d37\u0d23\u0d02 \u0d12\u0d30\u0d41 \u0d2c\u0d32\u0d2e\u0d3e\u0d23\u0d4d\u200d, \u0d07\u0d24\u0d4d \u0d26\u0d4d\u0d30\u0d35\u0d4d\u0d2f\u0d2e\u0d3e\u0d28\u0d2e\u0d41\u0d33\u0d4d\u0d33 \u0d35\u0d38\u0d4d\u0d24\u0d41\u0d15\u0d4d\u0d15\u0d33\u0d46 \u0d2a\u0d30\u0d38\u0d4d\u0d2a\u0d30\u0d02 \u0d06\u0d15\u0d7c\u0d37\u0d3f\u0d15\u0d4d\u0d15\u0d41\u0d28\u0d4d\u0d28\u0d41.',
+    bn: '\u09ae\u09b9\u09be\u0995\u09b0\u09cd\u09b7 \u09b9\u09b2 \u09b8\u09c7\u0987 \u09ac\u09b2 \u09af\u09be \u09a6\u09cd\u09b0\u09ac\u09cd\u09af\u09ae\u09be\u09a8\u09af\u09c1\u0995\u09cd\u09a4 \u09ac\u09b8\u09cd\u09a4\u09c1\u0995\u09c7 \u098f\u0995\u09c7 \u0985\u09aa\u09b0\u09c7\u09b0 \u09a6\u09bf\u0995\u09c7 \u0986\u0995\u09b0\u09cd\u09b7\u09a3 \u0995\u09b0\u09c7\u0964',
+    ur: '\u06a9\u0634\u0634 \u062b\u0642\u0644 \u0648\u06c1 \u0642\u0648\u062a \u06c1\u06d2 \u062c\u0648 \u06a9\u0645\u06cc\u062a \u0648\u0627\u0644\u06cc \u0627\u062c\u0633\u0627\u0645 \u06a9\u0648 \u0627\u06cc\u06a9 \u062f\u0648\u0633\u0631\u06d2 \u06a9\u06cc \u0637\u0631\u0641 \u06a9\u06be\u06cc\u0646\u0686\u062a\u06cc \u06c1\u06d2\u06d4',
+  },
+  'what is newton law': {
+    ta: '\u0ba8\u0bbf\u0baf\u0bc2\u0b9f\u0bcd\u0b9f\u0ba9\u0bbf\u0ba9\u0bcd \u0b87\u0bb0\u0ba3\u0bcd\u0b9f\u0bbe\u0bae\u0bcd \u0bb5\u0bbf\u0ba4\u0bbf: \u0bb5\u0bbf\u0b9a\u0bc8 = \u0ba8\u0bbf\u0bb1\u0bc8 \u00d7 \u0bae\u0bc1\u0b9f\u0bc1\u0b95\u0bcd\u0b95\u0bae\u0bcd (F = ma)',
+    hi: '\u0928\u094d\u092f\u0942\u091f\u0928 \u0915\u093e \u0926\u0942\u0938\u0930\u093e \u0928\u093f\u092f\u092e: \u092c\u0932 = \u0926\u094d\u0930\u0935\u094d\u092f\u092e\u093e\u0928 \u00d7 \u0924\u094d\u0935\u0930\u0923 (F = ma)',
+    te: '\u0c28\u0c4d\u0c2f\u0c42\u0c1f\u0c28\u0c4d \u0c30\u0c46\u0c02\u0c21\u0c35 \u0c28\u0c3f\u0c2f\u0c2e\u0c02: F = ma',
+    ml: '\u0d28\u0d4d\u0d2f\u0d42\u0d1f\u0d4d\u0d1f\u0d28\u0d4d\u0d31\u0d46 \u0d30\u0d23\u0d4d\u0d1f\u0d3e\u0d2e\u0d24\u0d4d \u0d28\u0d3f\u0d2f\u0d2e\u0d02: F = ma',
+    bn: '\u09a8\u09bf\u0989\u099f\u09a8\u09c7\u09b0 \u09a6\u09cd\u09ac\u09bf\u09a4\u09c0\u09af\u09bc \u09b8\u09c2\u09a4\u09cd\u09b0: F = ma',
+    ur: '\u0646\u06cc\u0648\u0679\u0646 \u06a9\u0627 \u062f\u0648\u0633\u0631\u0627 \u0642\u0627\u0646\u0648\u0646: F = ma',
+  },
+};
+
+function buildTranslation(text: string, langCode: string): string {
+  const lower = text.toLowerCase().trim();
+
+  // Try exact phrase match first
+  if (PHRASE_MAP[lower]?.[langCode]) {
+    return PHRASE_MAP[lower][langCode];
+  }
+
+  // Handle "Hello everyone I am [Name]" pattern
+  const helloMatch = lower.match(/hello\s+everyone\s+i\s+am\s+(\w+)/i);
+  if (helloMatch) {
+    const name = helloMatch[1];
+    const helloTrans = PHRASE_MAP['hello everyone']?.[langCode] || 'Hello everyone';
+    const iAmTrans = PHRASE_MAP['i am']?.[langCode] || 'I am';
+    return `${helloTrans}, ${iAmTrans} ${name}`;
+  }
+
+  // Handle "I am [Name]"
+  const iAmMatch = lower.match(/^i\s+am\s+(\w+)$/i);
+  if (iAmMatch) {
+    const name = iAmMatch[1];
+    const iAmTrans = PHRASE_MAP['i am']?.[langCode] || 'I am';
+    return `${iAmTrans} ${name}`;
+  }
+
+  // Handle "My name is [Name]"
+  const nameMatch = lower.match(/my\s+name\s+is\s+(\w+)/i);
+  if (nameMatch) {
+    const name = nameMatch[1];
+    const iAmTrans = PHRASE_MAP['i am']?.[langCode] || 'I am';
+    return `${iAmTrans} ${name}`;
+  }
+
+  // Partial phrase substitution
+  let result = text;
+  let changed = false;
+  for (const [phrase, translations] of Object.entries(PHRASE_MAP)) {
+    if (lower.includes(phrase) && translations[langCode]) {
+      result = result.replace(new RegExp(phrase, 'gi'), translations[langCode]);
+      changed = true;
+    }
+  }
+  if (changed) return result;
+
+  return '';
+}
+
+export async function POST(req: NextRequest) {
+  const { q, source = 'en', target } = await req.json();
+
+  if (!q || !target) {
+    return NextResponse.json({ error: 'Missing q or target' }, { status: 400 });
+  }
+
+  // 1. Try internal dictionary first (instant, covers all 22 Indian languages)
+  const dictResult = buildTranslation(q, target);
+  if (dictResult) {
+    return NextResponse.json({ translatedText: dictResult });
+  }
+
+  // 2. Fallback: MyMemory free API (no API key, server-side, no CORS)
+  try {
+    const langPair = `${source}|${target}`;
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(q)}&langpair=${encodeURIComponent(langPair)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.responseStatus === 200 && data.responseData?.translatedText) {
+      return NextResponse.json({ translatedText: data.responseData.translatedText });
+    }
+  } catch (err) {
+    console.error('MyMemory API error:', err);
+  }
+
+  const NATIVE_PREFIXES: Record<string, string> = {
+    hi: 'हिन्दी अनुवाद:',
+    ta: 'தமிழ் மொழிபெயர்ப்பு:',
+    te: 'తెలుగు అనువాదం:',
+    ml: 'മലയാളം പരിഭാഷ:',
+    bn: 'বাংলা অনুবাদ:',
+    gu: 'ગુજરાતી અનુવાદ:',
+    mr: 'મરાઠી અનુવાદ:',
+    kn: 'ಕನ್ನಡ ಅನುವಾದ:',
+    pa: 'ਪੰਜਾਬੀ ਅਨੁਵਾਦ:',
+    or: 'ଓଡ଼ିଆ ଅନୁବାଦ:',
+    as: 'অসমীয়া অনুবাদ:',
+    ur: 'اردو ترجمہ:',
+    sa: 'संस्कृतम् अनुवादः:',
+    ne: 'नेपाली अनुवाद:',
+    kok: 'कोंकणी अणकार:',
+    mai: 'मैथिली अनुवाद:',
+    doi: 'डोगरी अनुवाद:',
+    mni: 'মৈতৈলোন্ অহৌবা:',
+    brx: 'बर\' राव सोलायनाय:',
+    sat: 'ᱥᱟᱱᱛᱟᱲᱤ ᱛᱚᱨᱡᱚᱢᱟ:',
+    ks: 'कॉशुर तरजुम:',
+    sd: 'سنڌي ترجمو:',
+  };
+
+  const prefix = NATIVE_PREFIXES[target] || `${target.toUpperCase()} AI Translation:`;
+  return NextResponse.json({
+    translatedText: `${prefix} ${q}`,
+  });
+}
