@@ -29,7 +29,7 @@ function VideoLabContent() {
   const [playerMode, setPlayerMode] = useState<'video_stream' | 'direct_video' | 'interactive_concept'>('video_stream');
   const [directVideoSrc, setDirectVideoSrc] = useState<string | null>(null);
 
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(300);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -365,7 +365,7 @@ function VideoLabContent() {
                 <video
                   ref={videoRef}
                   src={directVideoSrc}
-                  autoPlay
+                  controls
                   playsInline
                   onTimeUpdate={() => {
                     if (videoRef.current) {
@@ -390,9 +390,9 @@ function VideoLabContent() {
                 <iframe
                   ref={iframeRef}
                   key={selectedTopic.id + '_' + selectedTopic.youtubeId}
-                  src={`https://www.youtube-nocookie.com/embed/${selectedTopic.youtubeId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&playsinline=1`}
+                  src={`https://www.youtube-nocookie.com/embed/${selectedTopic.youtubeId}?autoplay=0&enablejsapi=1&rel=0&modestbranding=1&playsinline=1`}
                   title={selectedTopic.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   referrerPolicy="strict-origin-when-cross-origin"
                   style={{ width: '100%', height: 440, border: 'none', display: 'block' }}
