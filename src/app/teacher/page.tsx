@@ -115,8 +115,10 @@ export default function TeacherPage() {
     } catch { setStudents(INITIAL_STUDENTS); }
   }, [router]);
 
-  const loadCustomTopics = () => {
-    setCustomTopics(getTeacherCustomTopics());
+  const loadCustomTopics = async () => {
+    const { fetchTeacherTopicsCloud } = await import('@/lib/syllabusData');
+    const topics = await fetchTeacherTopicsCloud();
+    setCustomTopics(topics);
   };
 
   const handleAssignTopic = () => {
@@ -173,10 +175,10 @@ export default function TeacherPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDeleteTopic = (id: string) => {
-    const updated = customTopics.filter(t => t.id !== id);
-    localStorage.setItem('nexus_teacher_topics', JSON.stringify(updated));
-    setCustomTopics(updated);
+  const handleDeleteTopic = async (id: string) => {
+    const { deleteTeacherCustomTopic } = await import('@/lib/syllabusData');
+    deleteTeacherCustomTopic(id);
+    setCustomTopics(prev => prev.filter(t => t.id !== id));
     setDeleteConfirm(null);
   };
 

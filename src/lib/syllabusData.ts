@@ -58,20 +58,66 @@ export function getTeacherCustomTopics(): TeacherTopicPayload[] {
   }
 }
 
+export async function fetchTeacherTopicsCloud(): Promise<TeacherTopicPayload[]> {
+  try {
+    const res = await fetch('/api/teacher-topics', { cache: 'no-store' });
+    if (!res.ok) return getTeacherCustomTopics();
+    const data = await res.json();
+    if (data && Array.isArray(data.topics)) {
+      // Merge cloud topics with local cache without losing local items
+      const local = getTeacherCustomTopics();
+      const map = new Map<string, TeacherTopicPayload>();
+      local.forEach(t => map.set(t.id, t));
+      data.topics.forEach((t: TeacherTopicPayload) => map.set(t.id, t));
+      const merged = Array.from(map.values());
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nexus_teacher_topics', JSON.stringify(merged));
+      }
+      return merged;
+    }
+  } catch (err) {
+    console.warn('Could not sync teacher topics from cloud, using local cache:', err);
+  }
+  return getTeacherCustomTopics();
+}
+
 export function saveTeacherCustomTopic(topic: TeacherTopicPayload): void {
   if (typeof window === 'undefined') return;
   try {
     const existing = getTeacherCustomTopics();
     const updated = [topic, ...existing.filter(t => t.id !== topic.id)];
     localStorage.setItem('nexus_teacher_topics', JSON.stringify(updated));
+
+    // Asynchronously push to global server cloud so all laptops see it instantly
+    fetch('/api/teacher-topics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(topic),
+    }).catch(err => console.warn('Failed to sync topic to cloud API:', err));
   } catch (err) {
     console.error('Failed to save custom teacher topic:', err);
   }
 }
 
-export function getCombinedSyllabus(role: string): SyllabusTopic[] {
+export function deleteTeacherCustomTopic(id: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = getTeacherCustomTopics();
+    const updated = existing.filter(t => t.id !== id);
+    localStorage.setItem('nexus_teacher_topics', JSON.stringify(updated));
+
+    // Asynchronously delete from global server cloud
+    fetch(`/api/teacher-topics?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }).catch(err => console.warn('Failed to delete topic from cloud API:', err));
+  } catch (err) {
+    console.error('Failed to delete custom teacher topic:', err);
+  }
+}
+
+export function getCombinedSyllabus(role: string, customList?: TeacherTopicPayload[]): SyllabusTopic[] {
   const base = ROLE_SYLLABUS[role] || ROLE_SYLLABUS['school'] || [];
-  const custom = getTeacherCustomTopics().filter(t => t.targetRole === role || t.targetRole === 'all');
+  const custom = (customList || getTeacherCustomTopics()).filter(t => t.targetRole === role || t.targetRole === 'all');
   return [...custom, ...base];
 }
 

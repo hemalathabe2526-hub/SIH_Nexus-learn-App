@@ -116,6 +116,7 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState('');
   const [currentTime, setCurrentTime] = useState('');
   const [showSyllabus, setShowSyllabus] = useState(false);
+  const [cloudTopics, setCloudTopics] = useState<import('@/lib/syllabusData').TeacherTopicPayload[]>([]);
 
   useEffect(() => {
     const session = getStoredSession();
@@ -131,7 +132,20 @@ export default function DashboardPage() {
     const tick = () => setCurrentTime(new Date().toLocaleTimeString());
     tick();
     const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+
+    // Initial and periodic cloud sync for teacher syllabus topics across all laptops
+    const syncTopics = async () => {
+      const { fetchTeacherTopicsCloud } = await import('@/lib/syllabusData');
+      const topics = await fetchTeacherTopicsCloud();
+      setCloudTopics(topics);
+    };
+    syncTopics();
+    const syncInterval = setInterval(syncTopics, 8000);
+
+    return () => {
+      clearInterval(id);
+      clearInterval(syncInterval);
+    };
   }, [router]);
 
   const handleLogout = () => {
@@ -142,7 +156,7 @@ export default function DashboardPage() {
   const activeRole = currentUser && currentUser.role === 'teacher' ? role : currentUser?.role ?? 'school';
   const isRoleAccessible = (targetRole: UserRole) => canAccessRoleContent(currentUser, targetRole);
   const config = ROLE_CONFIGS[activeRole] || ROLE_CONFIGS['school'];
-  const syllabus = getCombinedSyllabus(activeRole);
+  const syllabus = getCombinedSyllabus(activeRole, cloudTopics);
 
   if (!currentUser) return null;
 

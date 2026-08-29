@@ -40,23 +40,30 @@ function VideoLabContent() {
   const [userNote, setUserNote] = useState('');
   const [notesList, setNotesList] = useState<{ time: string; text: string }[]>([]);
 
-  // Load syllabus based on role
+  // Load syllabus based on role and sync from cloud
   useEffect(() => {
     if (!currentUser) {
       router.replace('/login');
       return;
     }
-    const userSyllabus = getCombinedSyllabus(currentUser.role);
-    setSyllabus(userSyllabus);
-    setVideoUnavailable(false);
 
-    const topicId = searchParams.get('topic');
-    let initialTopic = userSyllabus[0];
-    if (topicId) {
-      const found = userSyllabus.find(t => t.id === topicId);
-      if (found) initialTopic = found;
-    }
-    setSelectedTopic(initialTopic);
+    const loadAndSync = async () => {
+      const { fetchTeacherTopicsCloud, getCombinedSyllabus } = await import('@/lib/syllabusData');
+      const cloudTopics = await fetchTeacherTopicsCloud();
+      const userSyllabus = getCombinedSyllabus(currentUser.role, cloudTopics);
+      setSyllabus(userSyllabus);
+
+      const topicId = searchParams.get('topic');
+      if (topicId) {
+        const found = userSyllabus.find(t => t.id === topicId);
+        if (found) { setSelectedTopic(found); return; }
+      }
+      setSelectedTopic(prev => prev || userSyllabus[0]);
+    };
+
+    loadAndSync();
+    const interval = setInterval(loadAndSync, 8000);
+    return () => clearInterval(interval);
   }, [currentUser, router, searchParams]);
 
   // Load video source when selectedTopic changes
