@@ -1,0 +1,24 @@
+{
+  "name": "NEXUS LEARN — AI Smart Education & Gamified Platform",
+  "short_name": "NEXUS LEARN",
+  "description": "AI-powered personalized gamified education platform for School, College, NEET, JEE & Skills.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020408",
+  "theme_color": "#020408",
+  "icons": [
+    {
+      "src": "/globe.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/globe.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

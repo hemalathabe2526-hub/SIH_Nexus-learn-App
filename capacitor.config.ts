@@ -5,6 +5,7 @@ const config: CapacitorConfig = {
   appName: 'NEXUS LEARN',
   webDir: 'out',
   server: {
+    url: 'https://sih-nexus-learn-app.vercel.app',
     androidScheme: 'https',
     cleartext: true,
   },
