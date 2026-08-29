@@ -25,8 +25,8 @@ function VideoLabContent() {
   const [syllabus, setSyllabus] = useState<SyllabusTopic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<SyllabusTopic | null>(null);
 
-  // Player mode: 'direct_video' | 'interactive_concept' (100% In-Platform)
-  const [playerMode, setPlayerMode] = useState<'direct_video' | 'interactive_concept'>('interactive_concept');
+  // Player mode: 'video_stream' | 'direct_video' | 'interactive_concept' (100% In-Platform)
+  const [playerMode, setPlayerMode] = useState<'video_stream' | 'direct_video' | 'interactive_concept'>('video_stream');
   const [directVideoSrc, setDirectVideoSrc] = useState<string | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(true);
@@ -97,8 +97,14 @@ function VideoLabContent() {
         return;
       }
 
-      // 3. Default for all topics: use the rich in-platform
-      //    interactive video lecture (100% guaranteed in-app, zero YouTube restrictions)
+      // 3. For all syllabus topics: play the verified educational video directly in the platform
+      if (selectedTopic.youtubeId) {
+        setPlayerMode('video_stream');
+        setDirectVideoSrc(null);
+        return;
+      }
+
+      // 4. Default fallback: interactive concept studio
       setPlayerMode('interactive_concept');
       setDirectVideoSrc(null);
     }
@@ -110,7 +116,7 @@ function VideoLabContent() {
     };
   }, [selectedTopic]);
 
-  // YouTube message listener for errors (e.g. embedding disabled by owner)
+  // YouTube message listener for errors — automatically switch to Interactive Concept Studio so students never see an error
   useEffect(() => {
     const handleYouTubeMessage = (event: MessageEvent) => {
       if (!event.origin.includes('youtube.com')) return;
@@ -118,7 +124,6 @@ function VideoLabContent() {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (data?.event === 'onError' || data?.info?.error) {
           setVideoUnavailable(true);
-          // Switch to in-platform interactive mode automatically so students never see an error
           setPlayerMode('interactive_concept');
         }
       } catch {
@@ -315,7 +320,7 @@ function VideoLabContent() {
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{selectedTopic.title}</span>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                {directVideoSrc && (
+                {directVideoSrc ? (
                   <button
                     onClick={() => setPlayerMode('direct_video')}
                     style={{
@@ -327,17 +332,29 @@ function VideoLabContent() {
                   >
                     🎬 Teacher Video
                   </button>
+                ) : (
+                  <button
+                    onClick={() => setPlayerMode('video_stream')}
+                    style={{
+                      padding: '4px 10px', borderRadius: 6, border: 'none',
+                      background: playerMode === 'video_stream' ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
+                      color: playerMode === 'video_stream' ? '#00d4ff' : 'rgba(255,255,255,0.6)',
+                      fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
+                    }}
+                  >
+                    📺 Video Stream
+                  </button>
                 )}
                 <button
                   onClick={() => setPlayerMode('interactive_concept')}
                   style={{
                     padding: '4px 10px', borderRadius: 6, border: 'none',
-                    background: playerMode === 'interactive_concept' ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
-                    color: playerMode === 'interactive_concept' ? '#00d4ff' : 'rgba(255,255,255,0.6)',
+                    background: playerMode === 'interactive_concept' ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.05)',
+                    color: playerMode === 'interactive_concept' ? '#a855f7' : 'rgba(255,255,255,0.6)',
                     fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
                   }}
                 >
-                  ⚡ In-Platform Video Lecture
+                  ⚡ Interactive Studio
                 </button>
               </div>
             </div>
@@ -367,8 +384,24 @@ function VideoLabContent() {
               </div>
             )}
 
-            {/* 2. IN-PLATFORM INTERACTIVE VIDEO LECTURE (100% Guaranteed In-App, Zero External Redirects) */}
-            {playerMode !== 'direct_video' && (
+            {/* 2. IN-PLATFORM SECURED VIDEO STREAM (Verified Educational Video Played 100% Inside App) */}
+            {playerMode === 'video_stream' && selectedTopic.youtubeId && !videoUnavailable && (
+              <div style={{ position: 'relative', width: '100%', height: 440, background: '#000' }}>
+                <iframe
+                  ref={iframeRef}
+                  key={selectedTopic.id + '_' + selectedTopic.youtubeId}
+                  src={`https://www.youtube-nocookie.com/embed/${selectedTopic.youtubeId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&playsinline=1`}
+                  title={selectedTopic.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  style={{ width: '100%', height: 440, border: 'none', display: 'block' }}
+                />
+              </div>
+            )}
+
+            {/* 3. IN-PLATFORM INTERACTIVE VIDEO LECTURE STUDIO (Guaranteed In-App, Zero External Redirects) */}
+            {(playerMode === 'interactive_concept' || (playerMode === 'video_stream' && videoUnavailable)) && (
               <div style={{ minHeight: 420, background: 'radial-gradient(circle at center, #0a192f 0%, #020408 100%)', padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -638,7 +671,7 @@ function VideoLabContent() {
             {[
               { label: 'Rewind Events', val: `${rewindCount} times`, color: rewindCount >= 2 ? '#ef4444' : '#10b981' },
               { label: 'Time Spent', val: formatTime(currentTime), color: '#00d4ff' },
-              { label: 'Player Engine', val: playerMode === 'direct_video' ? 'Native HTML5 Video' : 'In-Platform Concept Lecture', color: '#10b981' },
+              { label: 'Player Engine', val: playerMode === 'direct_video' ? 'Native HTML5 Video' : playerMode === 'video_stream' ? 'In-Platform Stream' : 'Concept Studio', color: '#10b981' },
               { label: 'Comprehension Rating', val: struggleDetected ? '58%' : '92%', color: struggleDetected ? '#ef4444' : '#10b981' },
             ].map(item => (
               <div key={item.label} style={{ padding: 10, borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
