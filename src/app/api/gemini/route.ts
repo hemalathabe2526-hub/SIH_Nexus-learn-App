@@ -21,6 +21,13 @@ export async function POST(req: NextRequest) {
         "Provide clear, structured, and easy-to-understand educational explanations with key principles, formulas, bullet points, and real-world examples. " +
         "Keep formatting clean with Markdown headers and bullet points.";
 
+      const candidateModels = [
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-flash-latest',
+      ];
+
       const contents = [
         ...history.map((msg: { sender: string; text: string }) => ({
           role: msg.sender === 'user' ? 'user' : 'model',
@@ -32,36 +39,38 @@ export async function POST(req: NextRequest) {
         },
       ];
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          systemInstruction: {
-            parts: [{ text: systemInstruction }],
-          },
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1000,
-          },
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (candidate) {
-          return NextResponse.json({
-            reply: candidate,
-            source: 'gemini-1.5-flash',
-            hasGeminiKey: true,
+      for (const modelName of candidateModels) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey.trim()}`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents,
+              systemInstruction: {
+                parts: [{ text: systemInstruction }],
+              },
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 1000,
+              },
+            }),
           });
+
+          if (response.ok) {
+            const data = await response.json();
+            const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (candidate) {
+              return NextResponse.json({
+                reply: candidate,
+                source: modelName,
+                hasGeminiKey: true,
+              });
+            }
+          }
+        } catch (err) {
+          console.warn(`Model ${modelName} failed:`, err);
         }
-      } else {
-        const errData = await response.text();
-        console.warn('Gemini API error response:', errData);
       }
     }
 
