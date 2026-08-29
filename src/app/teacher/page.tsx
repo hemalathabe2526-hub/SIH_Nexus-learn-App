@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { assignTopicToStudent, getAllStudents, getStoredSession, type UserProfile } from '@/lib/authStore';
@@ -10,6 +10,7 @@ import {
   type TeacherTopicPayload,
   type QuizQuestion,
 } from '@/lib/syllabusData';
+import { storeVideoBlob } from '@/lib/videoStore';
 
 const CLASS_DATA = {
   subject: 'Physics - Wave Optics',
@@ -44,8 +45,19 @@ const LAB_OPTIONS = [
 
 const BLANK_QUIZ: QuizQuestion = { id: Date.now(), type: 'mcq', question: '', options: ['', '', '', ''], correct: 0, explanation: '' };
 
+// Helper to extract YouTube ID from any format (embed, youtu.be, watch?v=)
+function extractYouTubeId(urlOrId: string): string {
+  const trimmed = urlOrId.trim();
+  if (!trimmed) return '';
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+  const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  return match ? match[1] : trimmed;
+}
+
 export default function TeacherPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'heatmap' | 'atrisk' | 'aiplan' | 'content'>('overview');
   const [students, setStudents] = useState(INITIAL_STUDENTS);
@@ -60,12 +72,18 @@ export default function TeacherPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
+  // Video Source Mode: 'file' | 'direct_url' | 'youtube'
+  const [videoSourceType, setVideoSourceType] = useState<'file' | 'direct_url' | 'youtube'>('file');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+
   // Form fields
   const [form, setForm] = useState({
     title: '',
     subject: '',
     description: '',
-    youtubeId: '',
+    youtubeIdOrUrl: '',
+    directVideoUrl: '',
     durationMinutes: 10,
     labRoute: '',
     keyConcepts: '',
@@ -110,9 +128,21 @@ export default function TeacherPage() {
   };
 
   const resetForm = () => {
-    setForm({ title: '', subject: '', description: '', youtubeId: '', durationMinutes: 10, labRoute: '', keyConcepts: '', targetRole: 'all' });
+    setForm({ title: '', subject: '', description: '', youtubeIdOrUrl: '', directVideoUrl: '', durationMinutes: 10, labRoute: '', keyConcepts: '', targetRole: 'all' });
     setQuizQuestions([{ ...BLANK_QUIZ, id: 1 }]);
     setEditingTopicId(null);
+    setSelectedFile(null);
+    setVideoPreviewUrl(null);
+    setVideoSourceType('file');
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      const objUrl = URL.createObjectURL(file);
+      setVideoPreviewUrl(objUrl);
+    }
   };
 
   const handleEditTopic = (t: TeacherTopicPayload) => {
@@ -120,12 +150,23 @@ export default function TeacherPage() {
       title: t.title,
       subject: t.subject,
       description: t.description,
-      youtubeId: t.youtubeId,
+      youtubeIdOrUrl: t.youtubeId || '',
+      directVideoUrl: t.videoUrl || '',
       durationMinutes: t.durationMinutes,
       labRoute: t.labRoute || '',
       keyConcepts: t.keyConcepts.join(', '),
       targetRole: t.targetRole,
     });
+    if (t.videoSource === 'local' || t.uploadedVideoData) {
+      setVideoSourceType('file');
+      setVideoPreviewUrl(t.videoUrl || null);
+    } else if (t.videoSource === 'direct' || t.videoUrl) {
+      setVideoSourceType('direct_url');
+      setVideoPreviewUrl(t.videoUrl || null);
+    } else {
+      setVideoSourceType('youtube');
+      setVideoPreviewUrl(null);
+    }
     setQuizQuestions(t.customQuiz && t.customQuiz.length > 0 ? t.customQuiz : [{ ...BLANK_QUIZ, id: 1 }]);
     setEditingTopicId(t.id);
     setShowAddForm(true);
@@ -139,21 +180,58 @@ export default function TeacherPage() {
     setDeleteConfirm(null);
   };
 
-  const handleSaveTopic = () => {
-    if (!form.title.trim() || !form.subject.trim() || !form.youtubeId.trim()) {
+  const handleSaveTopic = async () => {
+    if (!form.title.trim() || !form.subject.trim()) {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 2000);
       return;
     }
+
+    // Validation based on video source
+    if (videoSourceType === 'file' && !selectedFile && !videoPreviewUrl) {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+      return;
+    }
+    if (videoSourceType === 'direct_url' && !form.directVideoUrl.trim()) {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+      return;
+    }
+    if (videoSourceType === 'youtube' && !form.youtubeIdOrUrl.trim()) {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+      return;
+    }
+
     setSaveStatus('saving');
     const topicId = editingTopicId || `teacher_${Date.now()}`;
+    let finalVideoUrl = '';
+    let finalVideoSource: 'local' | 'direct' | 'youtube' = 'youtube';
+    let cleanYoutubeId = '';
+
+    if (videoSourceType === 'file' && selectedFile) {
+      // Store in IndexedDB for permanent local in-app playback
+      const storedUrl = await storeVideoBlob(topicId, selectedFile);
+      finalVideoUrl = storedUrl;
+      finalVideoSource = 'local';
+    } else if (videoSourceType === 'direct_url') {
+      finalVideoUrl = form.directVideoUrl.trim();
+      finalVideoSource = 'direct';
+    } else {
+      cleanYoutubeId = extractYouTubeId(form.youtubeIdOrUrl);
+      finalVideoSource = 'youtube';
+    }
+
     const payload: TeacherTopicPayload = {
       id: topicId,
       title: form.title.trim(),
       subject: form.subject.trim(),
       description: form.description.trim(),
-      youtubeId: form.youtubeId.trim(),
-      embedUrl: `https://www.youtube.com/embed/${form.youtubeId.trim()}?rel=0&modestbranding=1`,
+      youtubeId: cleanYoutubeId || 'h4OnBYrbCjY',
+      embedUrl: cleanYoutubeId ? `https://www.youtube.com/embed/${cleanYoutubeId}?rel=0&modestbranding=1` : '',
+      videoUrl: finalVideoUrl || undefined,
+      videoSource: finalVideoSource,
       durationMinutes: Number(form.durationMinutes) || 10,
       labRoute: form.labRoute || undefined,
       keyConcepts: form.keyConcepts.split(',').map(k => k.trim()).filter(Boolean),
@@ -162,6 +240,7 @@ export default function TeacherPage() {
       createdAt: new Date().toISOString(),
       customQuiz: quizQuestions.filter(q => q.question.trim()),
     };
+
     saveTeacherCustomTopic(payload);
     setTimeout(() => {
       setSaveStatus('saved');
@@ -223,7 +302,7 @@ export default function TeacherPage() {
       <div style={{ padding: '16px 32px 0', display: 'flex', gap: 4, borderBottom: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
         {[
           { id: 'overview', label: '📊 Overview', color: '#0066ff' },
-          { id: 'content', label: '📚 Add Content', color: '#10b981' },
+          { id: 'content', label: '📚 Add / Manage Content', color: '#10b981' },
           { id: 'heatmap', label: '🔥 Confusion Heatmap', color: '#ef4444' },
           { id: 'atrisk', label: '⚠️ At-Risk Students', color: '#f59e0b' },
           { id: 'aiplan', label: '🤖 AI Lesson Plan', color: '#a855f7' },
@@ -268,7 +347,7 @@ export default function TeacherPage() {
               <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#10b981', fontFamily: 'Space Grotesk' }}>⚡ Quick Actions</h3>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {[
-                  { label: '📚 Add Topic / Video', action: () => { setSelectedTab('content'); setShowAddForm(true); }, color: '#10b981' },
+                  { label: '📚 Upload & Publish Video Content', action: () => { setSelectedTab('content'); setShowAddForm(true); }, color: '#10b981' },
                   { label: '⚠️ View At-Risk Students', action: () => setSelectedTab('atrisk'), color: '#f59e0b' },
                   { label: '🔥 Confusion Heatmap', action: () => setSelectedTab('heatmap'), color: '#ef4444' },
                   { label: '🤖 AI Lesson Plan', action: () => setSelectedTab('aiplan'), color: '#a855f7' },
@@ -288,17 +367,17 @@ export default function TeacherPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div>
                 <h2 style={{ margin: 0, fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 20, color: '#10b981' }}>
-                  📚 Teacher Content Management
+                  📚 Teacher Content Management & Video Upload
                 </h2>
                 <p style={{ margin: '6px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-                  Add topics, YouTube videos, 3D labs, and quizzes — broadcast to any student role group
+                  Upload video files directly or link media — students watch 100% inside the platform with zero YouTube restrictions
                 </p>
               </div>
               <button
                 onClick={() => { resetForm(); setShowAddForm(v => !v); }}
                 style={{ padding: '10px 20px', borderRadius: 10, background: showAddForm ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Outfit' }}
               >
-                {showAddForm ? '✕ Cancel' : '＋ Add New Content'}
+                {showAddForm ? '✕ Cancel' : '＋ Upload / Add New Content'}
               </button>
             </div>
 
@@ -306,8 +385,100 @@ export default function TeacherPage() {
             {showAddForm && (
               <div style={{ padding: 24, borderRadius: 20, background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)', marginBottom: 28 }}>
                 <h3 style={{ margin: '0 0 20px', fontFamily: 'Space Grotesk', fontSize: 16, color: '#10b981' }}>
-                  {editingTopicId ? '✏️ Edit Content' : '➕ Add New Content'}
+                  {editingTopicId ? '✏️ Edit Content' : '➕ Upload & Publish New Video Lecture'}
                 </h3>
+
+                {/* Video Source Type Selector */}
+                <div style={{ marginBottom: 20 }}>
+                  <label style={labelStyle}>Choose Video Source Type:</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+                    {[
+                      { id: 'file', label: '📁 Upload Video File (MP4/WebM)', desc: '100% In-Platform Playback (Recommended)', color: '#10b981' },
+                      { id: 'direct_url', label: '🔗 Direct Video Link (MP4/WebM)', desc: 'Cloudinary, S3, or CDN URL', color: '#00d4ff' },
+                      { id: 'youtube', label: '🔴 YouTube Link / ID', desc: 'Auto-extracted video link', color: '#f59e0b' },
+                    ].map(st => (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => setVideoSourceType(st.id as typeof videoSourceType)}
+                        style={{
+                          padding: 14, borderRadius: 12, textAlign: 'left',
+                          background: videoSourceType === st.id ? `${st.color}20` : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${videoSourceType === st.id ? st.color : 'rgba(255,255,255,0.1)'}`,
+                          cursor: 'pointer', fontFamily: 'Outfit',
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, color: videoSourceType === st.id ? st.color : 'white', fontSize: 13 }}>{st.label}</div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>{st.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Video Source Input based on Mode */}
+                <div style={{ marginBottom: 20, padding: 16, borderRadius: 14, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  {videoSourceType === 'file' && (
+                    <div>
+                      <label style={labelStyle}>Select Video File from Computer (MP4, WebM, MOV):</label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                        onChange={handleFileChange}
+                        style={{ ...inputStyle, padding: 12, cursor: 'pointer' }}
+                      />
+                      {selectedFile && (
+                        <div style={{ marginTop: 10, fontSize: 12, color: '#10b981', fontWeight: 600 }}>
+                          ✓ Selected: {selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {videoSourceType === 'direct_url' && (
+                    <div>
+                      <label style={labelStyle}>Direct Video URL (MP4 / WebM):</label>
+                      <input
+                        style={inputStyle}
+                        placeholder="https://example.com/lecture-wave-optics.mp4"
+                        value={form.directVideoUrl}
+                        onChange={e => {
+                          setForm(f => ({ ...f, directVideoUrl: e.target.value }));
+                          setVideoPreviewUrl(e.target.value.trim() || null);
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {videoSourceType === 'youtube' && (
+                    <div>
+                      <label style={labelStyle}>YouTube Link or Video ID:</label>
+                      <input
+                        style={inputStyle}
+                        placeholder="Paste YouTube URL (e.g. https://www.youtube.com/watch?v=0a8gjbn33rM) or ID"
+                        value={form.youtubeIdOrUrl}
+                        onChange={e => setForm(f => ({ ...f, youtubeIdOrUrl: e.target.value }))}
+                      />
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
+                        ℹ️ Tip: Uploading an MP4 file directly guarantees students will never see &quot;Playback on other websites disabled&quot;.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Video Live Preview inside Teacher Form */}
+                  {videoPreviewUrl && (
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ fontSize: 11, color: '#10b981', fontWeight: 700, marginBottom: 6 }}>
+                        📺 In-Platform Video Preview (Plays seamlessly inside app):
+                      </div>
+                      <video
+                        src={videoPreviewUrl}
+                        controls
+                        style={{ width: '100%', maxHeight: 240, borderRadius: 10, background: '#000' }}
+                      />
+                    </div>
+                  )}
+                </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                   {/* Title */}
@@ -319,16 +490,6 @@ export default function TeacherPage() {
                   <div>
                     <label style={labelStyle}>Subject *</label>
                     <input style={inputStyle} placeholder="e.g. Physics, Chemistry, Math" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} />
-                  </div>
-                  {/* YouTube ID */}
-                  <div>
-                    <label style={labelStyle}>YouTube Video ID *</label>
-                    <input style={inputStyle} placeholder="e.g. h4OnBYrbCjY (from URL)" value={form.youtubeId} onChange={e => setForm(f => ({ ...f, youtubeId: e.target.value }))} />
-                    {form.youtubeId.trim() && (
-                      <a href={`https://www.youtube.com/watch?v=${form.youtubeId.trim()}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#00d4ff', marginTop: 4, display: 'block' }}>
-                        🔗 Preview video ↗
-                      </a>
-                    )}
                   </div>
                   {/* Duration */}
                   <div>
@@ -347,7 +508,7 @@ export default function TeacherPage() {
                     </select>
                   </div>
                   {/* 3D Lab Route */}
-                  <div>
+                  <div style={{ gridColumn: 'span 2' }}>
                     <label style={labelStyle}>3D Virtual Lab (optional)</label>
                     <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.labRoute} onChange={e => setForm(f => ({ ...f, labRoute: e.target.value }))}>
                       {LAB_OPTIONS.map(o => <option key={o.route} value={o.route}>{o.label}</option>)}
@@ -461,7 +622,7 @@ export default function TeacherPage() {
                       border: 'none', color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Outfit',
                     }}
                   >
-                    {saveStatus === 'saving' ? '⏳ Publishing...' : saveStatus === 'saved' ? '✅ Published to Students!' : saveStatus === 'error' ? '❌ Missing required fields' : editingTopicId ? '✏️ Update & Re-publish' : '📤 Publish to All Students'}
+                    {saveStatus === 'saving' ? '⏳ Publishing...' : saveStatus === 'saved' ? '✅ Published to In-Platform Student View!' : saveStatus === 'error' ? '❌ Please fill all required fields' : editingTopicId ? '✏️ Update & Re-publish' : '📤 Publish In-Platform Lecture'}
                   </button>
                   <button
                     onClick={() => { resetForm(); setShowAddForm(false); }}
@@ -481,7 +642,7 @@ export default function TeacherPage() {
                 <div style={{ padding: 40, textAlign: 'center', borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)' }}>
                   <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
                   <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>No custom content published yet.</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>Use ＋ Add New Content above to publish your first topic!</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>Use ＋ Upload / Add New Content above to publish your first in-platform video topic!</div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -489,11 +650,11 @@ export default function TeacherPage() {
                     <div key={t.id} style={{ padding: 20, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(16,185,129,0.15)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'center' }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                          <span style={{ fontSize: 18 }}>🎬</span>
+                          <span style={{ fontSize: 18 }}>{t.videoSource === 'local' ? '📁' : t.videoSource === 'direct' ? '🔗' : '🎬'}</span>
                           <div>
                             <div style={{ fontSize: 15, fontWeight: 700, color: 'white' }}>{t.title}</div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
-                              {t.subject} · {t.durationMinutes} min · {t.labRoute ? '🔬 Lab Linked' : '📺 Video Only'} · {t.customQuiz?.length || 0} quiz questions
+                              {t.subject} · {t.durationMinutes} min · {t.videoSource === 'local' ? '⚡ Direct In-Platform File' : t.videoSource === 'direct' ? '🔗 Direct Stream' : '📺 Video'} · {t.labRoute ? '🔬 Lab Linked' : '📺 Video Only'} · {t.customQuiz?.length || 0} quiz questions
                             </div>
                           </div>
                         </div>
@@ -508,11 +669,10 @@ export default function TeacherPage() {
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <a
-                            href={`https://www.youtube.com/watch?v=${t.youtubeId}`}
-                            target="_blank" rel="noopener noreferrer"
-                            style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
-                          >▶ Preview</a>
+                          <Link
+                            href={`/videolab?topic=${t.id}`}
+                            style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(0,212,255,0.15)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+                          >▶ Play In-Platform</Link>
                           <button
                             onClick={() => handleEditTopic(t)}
                             style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(0,102,255,0.15)', border: '1px solid rgba(0,102,255,0.3)', color: '#60a5fa', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit' }}

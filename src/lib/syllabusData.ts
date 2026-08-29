@@ -7,6 +7,8 @@ export interface SyllabusTopic {
   description: string;
   youtubeId: string;
   embedUrl: string;
+  videoUrl?: string;
+  videoSource?: 'youtube' | 'direct' | 'local';
   durationMinutes: number;
   labRoute?: string;
   keyConcepts: string[];
@@ -43,6 +45,7 @@ export interface TeacherTopicPayload extends SyllabusTopic {
   createdByTeacher?: string;
   createdAt?: string;
   customQuiz?: QuizQuestion[];
+  uploadedVideoData?: string; // Base64 or IndexedDB/Blob reference for uploaded video
 }
 
 export function getTeacherCustomTopics(): TeacherTopicPayload[] {

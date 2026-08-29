@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getStoredSession } from '@/lib/authStore';
-import { ROLE_SYLLABUS, TOPIC_QUIZZES, getCombinedSyllabus, getTeacherCustomTopics, type SyllabusTopic, type QuizQuestion } from '@/lib/syllabusData';
+import { TOPIC_QUIZZES, getCombinedSyllabus, type SyllabusTopic, type QuizQuestion } from '@/lib/syllabusData';
+import { getVideoBlobUrl } from '@/lib/videoStore';
 
 export default function VideoLabPage() {
   return (
@@ -18,14 +19,20 @@ function VideoLabContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const [currentUser] = useState(getStoredSession());
   const [syllabus, setSyllabus] = useState<SyllabusTopic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<SyllabusTopic | null>(null);
 
+  // Player mode: 'youtube' | 'direct_video' | 'interactive_concept'
+  const [playerMode, setPlayerMode] = useState<'youtube' | 'direct_video' | 'interactive_concept'>('youtube');
+  const [directVideoSrc, setDirectVideoSrc] = useState<string | null>(null);
+
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(300);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [rewindCount, setRewindCount] = useState(0);
   const [struggleDetected, setStruggleDetected] = useState(false);
   const [videoUnavailable, setVideoUnavailable] = useState(false);
@@ -44,19 +51,72 @@ function VideoLabContent() {
     setVideoUnavailable(false);
 
     const topicId = searchParams.get('topic');
+    let initialTopic = userSyllabus[0];
     if (topicId) {
-      const topic = userSyllabus.find(t => t.id === topicId);
-      if (topic) { setSelectedTopic(topic); return; }
+      const found = userSyllabus.find(t => t.id === topicId);
+      if (found) initialTopic = found;
     }
-    setSelectedTopic(userSyllabus[0]);
+    setSelectedTopic(initialTopic);
   }, [currentUser, router, searchParams]);
 
+  // Load video source when selectedTopic changes
+  useEffect(() => {
+    if (!selectedTopic) return;
+    setRewindCount(0);
+    setStruggleDetected(false);
+    setCurrentTime(0);
+    setIsPlaying(true);
+    setVideoUnavailable(false);
+
+    let isMounted = true;
+
+    async function resolveVideo() {
+      if (!selectedTopic) return;
+      // 1. Check if local video blob is in IndexedDB
+      const blobUrl = await getVideoBlobUrl(selectedTopic.id);
+      if (!isMounted) return;
+
+      if (blobUrl) {
+        setDirectVideoSrc(blobUrl);
+        setPlayerMode('direct_video');
+        return;
+      }
+
+      // 2. Check if topic has a direct video URL or is marked direct/local
+      if (selectedTopic.videoUrl) {
+        setDirectVideoSrc(selectedTopic.videoUrl);
+        setPlayerMode('direct_video');
+        return;
+      }
+
+      // 3. If YouTube, check mode
+      if (selectedTopic.videoSource === 'direct' || selectedTopic.videoSource === 'local') {
+        setPlayerMode('direct_video');
+        setDirectVideoSrc(selectedTopic.videoUrl || null);
+      } else {
+        setPlayerMode('youtube');
+        setDirectVideoSrc(null);
+      }
+    }
+
+    resolveVideo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedTopic]);
+
+  // YouTube message listener for errors (e.g. embedding disabled by owner)
   useEffect(() => {
     const handleYouTubeMessage = (event: MessageEvent) => {
       if (!event.origin.includes('youtube.com')) return;
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        if (data?.event === 'onError' || data?.info?.error) setVideoUnavailable(true);
+        if (data?.event === 'onError' || data?.info?.error) {
+          setVideoUnavailable(true);
+          // Switch to in-platform interactive mode automatically so students never see an error
+          setPlayerMode('interactive_concept');
+        }
       } catch {
         // Ignore unrelated postMessage payloads.
       }
@@ -65,10 +125,10 @@ function VideoLabContent() {
     return () => window.removeEventListener('message', handleYouTubeMessage);
   }, []);
 
-  // Video timer simulation
+  // Video timer simulation for YouTube or Interactive mode
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (isPlaying) {
+    if (isPlaying && playerMode !== 'direct_video') {
       timer = setInterval(() => {
         setCurrentTime(prev => {
           if (prev >= duration) {
@@ -80,7 +140,7 @@ function VideoLabContent() {
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [isPlaying, duration]);
+  }, [isPlaying, duration, playerMode]);
 
   const sendIframeCommand = (func: string, args: unknown[] = []) => {
     if (iframeRef.current && iframeRef.current.contentWindow) {
@@ -94,18 +154,37 @@ function VideoLabContent() {
   const handleTogglePlay = () => {
     const nextState = !isPlaying;
     setIsPlaying(nextState);
-    sendIframeCommand(nextState ? 'playVideo' : 'pauseVideo');
+
+    if (playerMode === 'direct_video' && videoRef.current) {
+      if (nextState) {
+        videoRef.current.play().catch(() => {});
+      } else {
+        videoRef.current.pause();
+      }
+    } else {
+      sendIframeCommand(nextState ? 'playVideo' : 'pauseVideo');
+    }
   };
 
   const handleRewind = () => {
     const newTime = Math.max(0, currentTime - 10);
     setCurrentTime(newTime);
-    sendIframeCommand('seekTo', [newTime, true]);
+
+    if (playerMode === 'direct_video' && videoRef.current) {
+      videoRef.current.currentTime = newTime;
+    } else {
+      sendIframeCommand('seekTo', [newTime, true]);
+    }
+
     setRewindCount(prev => {
       const next = prev + 1;
       if (next >= 2 && !struggleDetected) {
         setIsPlaying(false);
-        sendIframeCommand('pauseVideo');
+        if (playerMode === 'direct_video' && videoRef.current) {
+          videoRef.current.pause();
+        } else {
+          sendIframeCommand('pauseVideo');
+        }
         setStruggleDetected(true);
       }
       return next;
@@ -115,7 +194,29 @@ function VideoLabContent() {
   const handleForward = () => {
     const newTime = Math.min(duration, currentTime + 10);
     setCurrentTime(newTime);
-    sendIframeCommand('seekTo', [newTime, true]);
+
+    if (playerMode === 'direct_video' && videoRef.current) {
+      videoRef.current.currentTime = newTime;
+    } else {
+      sendIframeCommand('seekTo', [newTime, true]);
+    }
+  };
+
+  const handleSpeedChange = (speed: number) => {
+    setPlaybackSpeed(speed);
+    if (playerMode === 'direct_video' && videoRef.current) {
+      videoRef.current.playbackRate = speed;
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const seekTime = Number(e.target.value);
+    setCurrentTime(seekTime);
+    if (playerMode === 'direct_video' && videoRef.current) {
+      videoRef.current.currentTime = seekTime;
+    } else {
+      sendIframeCommand('seekTo', [seekTime, true]);
+    }
   };
 
   const handleAddNote = () => {
@@ -149,10 +250,10 @@ function VideoLabContent() {
         </Link>
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#00d4ff', margin: 0 }}>
-            📺 Restricted YouTube Video Learning Stream
+            🎬 In-Platform Video Learning Studio
           </h1>
           <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
-            🔒 Role-specific syllabus playback mode enabled
+            🔒 100% In-App Playback · Zero external redirects
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -179,10 +280,6 @@ function VideoLabContent() {
                 key={topic.id}
                 onClick={() => {
                   setSelectedTopic(topic);
-                  setRewindCount(0);
-                  setStruggleDetected(false);
-                  setCurrentTime(0);
-                  setIsPlaying(true);
                 }}
                 style={{
                   padding: '10px 12px', borderRadius: 10, border: `1px solid ${selectedTopic?.id === topic.id ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.06)'}`,
@@ -190,56 +287,100 @@ function VideoLabContent() {
                   color: 'white', textAlign: 'left', cursor: 'pointer', fontFamily: 'Outfit', transition: 'all 0.15s',
                 }}
               >
-                <div style={{ fontSize: 11, color: '#00d4ff', fontWeight: 700, marginBottom: 3 }}>{topic.subject}</div>
-                <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.3 }}>{topic.title}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: 11, color: '#00d4ff', fontWeight: 700 }}>{topic.subject}</div>
+                  {topic.videoSource === 'local' && (
+                    <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(16,185,129,0.2)', color: '#10b981', fontWeight: 700 }}>Teacher Upload</span>
+                  )}
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.3, marginTop: 2 }}>{topic.title}</div>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>⏱ {topic.durationMinutes} min</div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* CENTER: YouTube Video Player & Controls */}
+        {/* CENTER: In-Platform Video Player & Controls */}
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
           {/* Main Video Box */}
           <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(0,212,255,0.25)', position: 'relative', background: '#000' }}>
             {/* Top Player Mode Switcher */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', background: 'rgba(0,0,0,0.8)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', background: 'rgba(0,0,0,0.85)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{selectedTopic.title}</span>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
+                {directVideoSrc ? (
+                  <button
+                    onClick={() => setPlayerMode('direct_video')}
+                    style={{
+                      padding: '4px 10px', borderRadius: 6, border: 'none',
+                      background: playerMode === 'direct_video' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
+                      color: playerMode === 'direct_video' ? '#10b981' : 'rgba(255,255,255,0.6)',
+                      fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
+                    }}
+                  >
+                    📁 Native In-App Video
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setPlayerMode('youtube')}
+                    style={{
+                      padding: '4px 10px', borderRadius: 6, border: 'none',
+                      background: playerMode === 'youtube' ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
+                      color: playerMode === 'youtube' ? '#00d4ff' : 'rgba(255,255,255,0.6)',
+                      fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
+                    }}
+                  >
+                    📺 Video Stream
+                  </button>
+                )}
                 <button
-                  onClick={() => setVideoUnavailable(false)}
+                  onClick={() => setPlayerMode('interactive_concept')}
                   style={{
                     padding: '4px 10px', borderRadius: 6, border: 'none',
-                    background: !videoUnavailable ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
-                    color: !videoUnavailable ? '#00d4ff' : 'rgba(255,255,255,0.6)',
+                    background: playerMode === 'interactive_concept' ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.05)',
+                    color: playerMode === 'interactive_concept' ? '#a855f7' : 'rgba(255,255,255,0.6)',
                     fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
                   }}
                 >
-                  📺 Video Stream
-                </button>
-                <button
-                  onClick={() => setVideoUnavailable(true)}
-                  style={{
-                    padding: '4px 10px', borderRadius: 6, border: 'none',
-                    background: videoUnavailable ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
-                    color: videoUnavailable ? '#10b981' : 'rgba(255,255,255,0.6)',
-                    fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
-                  }}
-                >
-                  ⚡ Interactive Concept Stream
+                  ⚡ In-Platform Concept Stream
                 </button>
               </div>
             </div>
 
-            {/* Standard YouTube Video Embed */}
-            {!videoUnavailable ? (
+            {/* 1. NATIVE HTML5 IN-PLATFORM VIDEO PLAYER (For uploaded files / direct links) */}
+            {playerMode === 'direct_video' && directVideoSrc && (
+              <div style={{ position: 'relative', width: '100%', minHeight: 420, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <video
+                  ref={videoRef}
+                  src={directVideoSrc}
+                  autoPlay
+                  playsInline
+                  onTimeUpdate={() => {
+                    if (videoRef.current) {
+                      setCurrentTime(videoRef.current.currentTime);
+                    }
+                  }}
+                  onLoadedMetadata={() => {
+                    if (videoRef.current && videoRef.current.duration) {
+                      setDuration(videoRef.current.duration);
+                    }
+                  }}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  style={{ width: '100%', maxHeight: 440, objectFit: 'contain' }}
+                />
+              </div>
+            )}
+
+            {/* 2. YOUTUBE EMBED PLAYER (with fallback guarantee) */}
+            {playerMode === 'youtube' && !videoUnavailable && (
               <div style={{ position: 'relative', width: '100%', height: 420, background: '#000' }}>
                 <iframe
                   ref={iframeRef}
                   key={selectedTopic.youtubeId}
-                  src={`https://www.youtube-nocookie.com/embed/${selectedTopic.youtubeId}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1&origin=http://localhost:3000`}
+                  src={`https://www.youtube-nocookie.com/embed/${selectedTopic.youtubeId}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}`}
                   title={selectedTopic.title}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -247,23 +388,25 @@ function VideoLabContent() {
                   style={{ width: '100%', height: 420, border: 'none', display: 'block' }}
                 />
               </div>
-            ) : (
-              /* Interactive Animated Concept Player */
+            )}
+
+            {/* 3. INTERACTIVE IN-PLATFORM CONCEPT PLAYER (Guaranteed to work 100% inside app, no YouTube lockout) */}
+            {(playerMode === 'interactive_concept' || (playerMode === 'youtube' && videoUnavailable)) && (
               <div style={{ minHeight: 420, background: 'radial-gradient(circle at center, #0a192f 0%, #020408 100%)', padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: 'rgba(0,212,255,0.15)', color: '#00d4ff', fontWeight: 700 }}>
-                      ⚡ Interactive Audio-Visual Lecture
+                      ⚡ In-Platform Interactive Video Lecture
                     </span>
                     <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'JetBrains Mono' }}>
-                      Topic: {selectedTopic.subject}
+                      Subject: {selectedTopic.subject}
                     </span>
                   </div>
 
                   <h3 style={{ fontFamily: 'Space Grotesk', fontSize: 22, fontWeight: 800, color: 'white', margin: '0 0 10px' }}>
                     {selectedTopic.title}
                   </h3>
-                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6, maxWidth: 650, margin: '0 0 16px' }}>
+                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, maxWidth: 680, margin: '0 0 16px' }}>
                     {selectedTopic.description}
                   </p>
 
@@ -277,7 +420,7 @@ function VideoLabContent() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.5)', padding: '12px 18px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.6)', padding: '12px 18px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <button
                       onClick={() => {
@@ -294,6 +437,9 @@ function VideoLabContent() {
                       </Link>
                     )}
                   </div>
+                  <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700 }}>
+                    🔒 In-Platform Secured Stream Active
+                  </span>
                 </div>
               </div>
             )}
@@ -322,7 +468,13 @@ function VideoLabContent() {
 
                 <div style={{ display: 'flex', gap: 12 }}>
                   <button
-                    onClick={() => { setStruggleDetected(false); setIsPlaying(true); }}
+                    onClick={() => {
+                      setStruggleDetected(false);
+                      setIsPlaying(true);
+                      if (playerMode === 'direct_video' && videoRef.current) {
+                        videoRef.current.play().catch(() => {});
+                      }
+                    }}
                     style={{ padding: '10px 22px', borderRadius: 10, background: 'linear-gradient(135deg, #0066ff, #00d4ff)', border: 'none', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit' }}
                   >
                     👍 Resume Video Stream
@@ -340,13 +492,30 @@ function VideoLabContent() {
             )}
           </div>
 
-          {/* Interactive Player Controls */}
+          {/* Interactive Player Controls & Timeline Scrubbing */}
           <div style={{ padding: '12px 18px', borderRadius: 12, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Timeline Progress Bar */}
+            <div style={{ marginBottom: 10 }}>
+              <input
+                type="range"
+                min={0}
+                max={duration || 100}
+                value={currentTime}
+                onChange={handleSeek}
+                style={{
+                  width: '100%',
+                  accentColor: '#00d4ff',
+                  cursor: 'pointer',
+                  height: 4,
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <button
                   onClick={handleTogglePlay}
-                  style={{ width: 36, height: 36, borderRadius: '50%', background: '#0066ff', border: 'none', color: 'white', cursor: 'pointer', fontSize: 14 }}>
+                  style={{ width: 36, height: 36, borderRadius: '50%', background: '#0066ff', border: 'none', color: 'white', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {isPlaying ? '⏸' : '▶'}
                 </button>
                 <button onClick={handleRewind}
@@ -362,10 +531,27 @@ function VideoLabContent() {
                 </span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Syllabus Locked Mode:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {/* Speed selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Speed:</span>
+                  {[0.75, 1, 1.25, 1.5, 2].map(speed => (
+                    <button
+                      key={speed}
+                      onClick={() => handleSpeedChange(speed)}
+                      style={{
+                        padding: '3px 7px', borderRadius: 6, border: 'none',
+                        background: playbackSpeed === speed ? '#0066ff' : 'rgba(255,255,255,0.05)',
+                        color: 'white', fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                      }}
+                    >
+                      {speed}x
+                    </button>
+                  ))}
+                </div>
+
                 <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 10, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', fontWeight: 700 }}>
-                  🔒 Active Topic Only
+                  🔒 In-Platform Mode
                 </span>
               </div>
             </div>
@@ -392,7 +578,7 @@ function VideoLabContent() {
               {[
                 { id: 'video', label: '💡 AI Takeaways' },
                 { id: 'notes', label: '📝 Timestamped Notes' },
-                { id: 'quiz', label: '🎯 Full 20-Question Topic Quiz' },
+                { id: 'quiz', label: '🎯 Topic Quiz & Assessment' },
               ].map(t => (
                 <button key={t.id} onClick={() => setActiveTab(t.id as typeof activeTab)}
                   style={{
@@ -413,7 +599,7 @@ function VideoLabContent() {
                   {selectedTopic.keyConcepts.map((c, i) => (
                     <li key={i}>Mastering <strong>{c}</strong> is required for your role assessment.</li>
                   ))}
-                  <li>Use the 20-question quiz tab to test your full concept retention.</li>
+                  <li>Use the assessment quiz tab to test your full concept retention.</li>
                 </ul>
               </div>
             )}
@@ -444,7 +630,7 @@ function VideoLabContent() {
             )}
 
             {activeTab === 'quiz' && (
-              <Full20QuestionQuiz topicId={selectedTopic.id} topicTitle={selectedTopic.title} />
+              <Full20QuestionQuiz topic={selectedTopic} />
             )}
           </div>
         </div>
@@ -458,7 +644,7 @@ function VideoLabContent() {
             {[
               { label: 'Rewind Events', val: `${rewindCount} times`, color: rewindCount >= 2 ? '#ef4444' : '#10b981' },
               { label: 'Time Spent', val: formatTime(currentTime), color: '#00d4ff' },
-              { label: 'Quiz Questions Available', val: '20 Questions', color: '#f59e0b' },
+              { label: 'Player Engine', val: playerMode === 'direct_video' ? 'Native HTML5' : playerMode === 'youtube' ? 'Secured Stream' : 'Concept Stream', color: '#10b981' },
               { label: 'Comprehension Rating', val: struggleDetected ? '58%' : '92%', color: struggleDetected ? '#ef4444' : '#10b981' },
             ].map(item => (
               <div key={item.label} style={{ padding: 10, borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -471,7 +657,7 @@ function VideoLabContent() {
           <button
             onClick={() => { setRewindCount(2); setStruggleDetected(true); setIsPlaying(false); }}
             style={{ width: '100%', marginTop: 14, padding: 9, borderRadius: 8, background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.25)', color: '#00d4ff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit' }}>
-            ⚡ Trigger AI Struggle Modal
+            ⚡ Test AI Struggle Modal
           </button>
 
           {selectedTopic.labRoute && (
@@ -486,9 +672,13 @@ function VideoLabContent() {
   );
 }
 
-// 20-Question Quiz Component
-function Full20QuestionQuiz({ topicId, topicTitle }: { topicId: string; topicTitle: string }) {
-  const questionBank: QuizQuestion[] = TOPIC_QUIZZES[topicId] || [];
+// Full Quiz Component supporting both Teacher-Custom questions and standard Banks
+function Full20QuestionQuiz({ topic }: { topic: SyllabusTopic }) {
+  // Check if topic is teacher topic with custom quiz
+  const teacherTopic = topic as SyllabusTopic & { customQuiz?: QuizQuestion[] };
+  const customBank = teacherTopic.customQuiz && teacherTopic.customQuiz.length > 0 ? teacherTopic.customQuiz : null;
+  const questionBank: QuizQuestion[] = customBank || TOPIC_QUIZZES[topic.id] || TOPIC_QUIZZES['phy_101'] || [];
+
   const [questions, setQuestions] = useState<QuizQuestion[]>(() => shuffleQuestions(questionBank));
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
@@ -499,10 +689,10 @@ function Full20QuestionQuiz({ topicId, topicTitle }: { topicId: string; topicTit
     setCurrentIdx(0);
     setSelectedAnswers({});
     setSubmitted(false);
-  }, [topicId]);
+  }, [topic.id, questionBank]);
 
   if (questions.length === 0) {
-    return <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, padding: 16 }}>No quiz bank found for this topic.</div>;
+    return <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, padding: 16 }}>No quiz questions found for this topic.</div>;
   }
 
   const q = questions[currentIdx];
@@ -527,7 +717,7 @@ function Full20QuestionQuiz({ topicId, topicTitle }: { topicId: string; topicTit
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
           <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#f59e0b', margin: 0 }}>
-            🎯 20-Question Topic Assessment: {topicTitle}
+            🎯 Assessment: {topic.title}
           </h3>
           <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>
             Question {currentIdx + 1} of {questions.length}
