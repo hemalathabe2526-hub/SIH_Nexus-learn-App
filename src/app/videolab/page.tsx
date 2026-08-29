@@ -251,8 +251,9 @@ function VideoLabContent() {
         borderBottom: '1px solid rgba(0,212,255,0.15)', background: 'rgba(2,4,8,0.95)',
         backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100,
       }}>
-        <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>⚡</span>
+        <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon.png" alt="Logo" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover' }} />
           <span style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white' }}>NEXUS LEARN</span>
         </Link>
         <div style={{ textAlign: 'center' }}>

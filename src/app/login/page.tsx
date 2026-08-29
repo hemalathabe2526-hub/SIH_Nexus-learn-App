@@ -117,7 +117,20 @@ export default function LoginPage() {
       <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 460, padding: '0 16px' }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>⚡</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icon.png"
+            alt="Nexus Learn Logo"
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 18,
+              objectFit: 'cover',
+              margin: '0 auto 12px',
+              boxShadow: '0 0 30px rgba(0,102,255,0.4)',
+              display: 'block',
+            }}
+          />
           <h1 style={{
             fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, fontSize: 28,
             background: 'linear-gradient(135deg, #00d4ff, #0066ff, #a855f7)',

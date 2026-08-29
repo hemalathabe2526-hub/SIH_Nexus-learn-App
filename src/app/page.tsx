@@ -240,21 +240,18 @@ export default function Home() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icon.png"
+            alt="Nexus Learn Logo"
             style={{
               width: 38,
               height: 38,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #0066ff, #7c3aed)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 18,
+              borderRadius: 10,
+              objectFit: 'cover',
               boxShadow: '0 0 20px rgba(0,102,255,0.5)',
             }}
-          >
-            ⚡
-          </div>
+          />
           <span
             style={{
               fontFamily: 'Space Grotesk',

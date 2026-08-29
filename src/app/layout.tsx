@@ -13,6 +13,11 @@ export const metadata: Metadata = {
     description: "Personalized learning paths, 3D virtual labs, and AI struggle detection for all learners.",
     type: "website",
   },
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -23,6 +28,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href="/icon.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#020408" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

@@ -251,7 +251,18 @@ export default function DashboardPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #0066ff, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 15px rgba(0,102,255,0.5)' }}>⚡</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/icon.png"
+              alt="Nexus Learn Logo"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                objectFit: 'cover',
+                boxShadow: '0 0 15px rgba(0,102,255,0.5)',
+              }}
+            />
             <span style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 18, background: 'linear-gradient(135deg, #0066ff, #00d4ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>NEXUS LEARN</span>
           </Link>
         </div>
