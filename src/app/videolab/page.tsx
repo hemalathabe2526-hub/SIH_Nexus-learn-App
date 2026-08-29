@@ -25,8 +25,8 @@ function VideoLabContent() {
   const [syllabus, setSyllabus] = useState<SyllabusTopic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<SyllabusTopic | null>(null);
 
-  // Player mode: 'youtube' | 'direct_video' | 'interactive_concept'
-  const [playerMode, setPlayerMode] = useState<'youtube' | 'direct_video' | 'interactive_concept'>('youtube');
+  // Player mode: 'direct_video' | 'interactive_concept' (100% In-Platform)
+  const [playerMode, setPlayerMode] = useState<'direct_video' | 'interactive_concept'>('interactive_concept');
   const [directVideoSrc, setDirectVideoSrc] = useState<string | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(true);
@@ -97,15 +97,8 @@ function VideoLabContent() {
         return;
       }
 
-      // 3. If teacher explicitly chose YouTube source AND provided a YouTube ID, try embed
-      if (selectedTopic.videoSource === 'youtube' && selectedTopic.youtubeId) {
-        setPlayerMode('youtube');
-        setDirectVideoSrc(null);
-        return;
-      }
-
-      // 4. Default for ALL built-in syllabus topics: use the rich in-platform
-      //    interactive concept lecture (100% guaranteed to work, no YouTube restrictions)
+      // 3. Default for all topics: use the rich in-platform
+      //    interactive video lecture (100% guaranteed in-app, zero YouTube restrictions)
       setPlayerMode('interactive_concept');
       setDirectVideoSrc(null);
     }
@@ -322,7 +315,7 @@ function VideoLabContent() {
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{selectedTopic.title}</span>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                {directVideoSrc ? (
+                {directVideoSrc && (
                   <button
                     onClick={() => setPlayerMode('direct_video')}
                     style={{
@@ -332,36 +325,24 @@ function VideoLabContent() {
                       fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
                     }}
                   >
-                    📁 Native In-App Video
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setPlayerMode('youtube')}
-                    style={{
-                      padding: '4px 10px', borderRadius: 6, border: 'none',
-                      background: playerMode === 'youtube' ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
-                      color: playerMode === 'youtube' ? '#00d4ff' : 'rgba(255,255,255,0.6)',
-                      fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
-                    }}
-                  >
-                    📺 Video Stream
+                    🎬 Teacher Video
                   </button>
                 )}
                 <button
                   onClick={() => setPlayerMode('interactive_concept')}
                   style={{
                     padding: '4px 10px', borderRadius: 6, border: 'none',
-                    background: playerMode === 'interactive_concept' ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.05)',
-                    color: playerMode === 'interactive_concept' ? '#a855f7' : 'rgba(255,255,255,0.6)',
+                    background: playerMode === 'interactive_concept' ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
+                    color: playerMode === 'interactive_concept' ? '#00d4ff' : 'rgba(255,255,255,0.6)',
                     fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
                   }}
                 >
-                  ⚡ In-Platform Concept Stream
+                  ⚡ In-Platform Video Lecture
                 </button>
               </div>
             </div>
 
-            {/* 1. NATIVE HTML5 IN-PLATFORM VIDEO PLAYER (For uploaded files / direct links) */}
+            {/* 1. NATIVE HTML5 IN-PLATFORM VIDEO PLAYER (For uploaded files / direct video links) */}
             {playerMode === 'direct_video' && directVideoSrc && (
               <div style={{ position: 'relative', width: '100%', minHeight: 420, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <video
@@ -386,24 +367,8 @@ function VideoLabContent() {
               </div>
             )}
 
-            {/* 2. YOUTUBE EMBED PLAYER (with fallback guarantee) */}
-            {playerMode === 'youtube' && !videoUnavailable && (
-              <div style={{ position: 'relative', width: '100%', height: 420, background: '#000' }}>
-                <iframe
-                  ref={iframeRef}
-                  key={selectedTopic.youtubeId}
-                  src={`https://www.youtube-nocookie.com/embed/${selectedTopic.youtubeId}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}`}
-                  title={selectedTopic.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  style={{ width: '100%', height: 420, border: 'none', display: 'block' }}
-                />
-              </div>
-            )}
-
-            {/* 3. INTERACTIVE IN-PLATFORM CONCEPT PLAYER (Guaranteed to work 100% inside app, no YouTube lockout) */}
-            {(playerMode === 'interactive_concept' || (playerMode === 'youtube' && videoUnavailable)) && (
+            {/* 2. IN-PLATFORM INTERACTIVE VIDEO LECTURE (100% Guaranteed In-App, Zero External Redirects) */}
+            {playerMode !== 'direct_video' && (
               <div style={{ minHeight: 420, background: 'radial-gradient(circle at center, #0a192f 0%, #020408 100%)', padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -422,6 +387,23 @@ function VideoLabContent() {
                     {selectedTopic.description}
                   </p>
 
+                  {/* Animated Concept Wave Visualizer */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, height: 32, marginBottom: 16, padding: '6px 14px', background: 'rgba(0,212,255,0.05)', borderRadius: 10, border: '1px solid rgba(0,212,255,0.15)' }}>
+                    <span style={{ fontSize: 11, color: '#00d4ff', fontWeight: 700, marginRight: 8 }}>Lecture Wave:</span>
+                    {[40, 75, 20, 90, 50, 80, 30, 100, 60, 85, 45, 95, 35, 70, 55, 88].map((h, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          flex: 1,
+                          height: `${isPlaying ? h : 20}%`,
+                          background: 'linear-gradient(to top, #0066ff, #00d4ff)',
+                          borderRadius: 2,
+                          transition: 'height 0.3s ease',
+                        }}
+                      />
+                    ))}
+                  </div>
+
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 16 }}>
                     {selectedTopic.keyConcepts.map((kc, i) => (
                       <div key={i} style={{ padding: 12, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,212,255,0.2)', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -432,8 +414,8 @@ function VideoLabContent() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.6)', padding: '12px 18px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.6)', padding: '12px 18px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', flexWrap: 'wrap', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                     <button
                       onClick={() => {
                         const utterance = new SpeechSynthesisUtterance(`${selectedTopic.title}. ${selectedTopic.description}. Key concepts to master include ${selectedTopic.keyConcepts.join(', ')}.`);
@@ -656,7 +638,7 @@ function VideoLabContent() {
             {[
               { label: 'Rewind Events', val: `${rewindCount} times`, color: rewindCount >= 2 ? '#ef4444' : '#10b981' },
               { label: 'Time Spent', val: formatTime(currentTime), color: '#00d4ff' },
-              { label: 'Player Engine', val: playerMode === 'direct_video' ? 'Native HTML5' : playerMode === 'youtube' ? 'Secured Stream' : 'Concept Stream', color: '#10b981' },
+              { label: 'Player Engine', val: playerMode === 'direct_video' ? 'Native HTML5 Video' : 'In-Platform Concept Lecture', color: '#10b981' },
               { label: 'Comprehension Rating', val: struggleDetected ? '58%' : '92%', color: struggleDetected ? '#ef4444' : '#10b981' },
             ].map(item => (
               <div key={item.label} style={{ padding: 10, borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
