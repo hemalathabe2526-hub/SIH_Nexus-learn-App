@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "export:android": "cross-env BUILD_TARGET=android next build && npx cap sync android",
     "start": "next start",
     "lint": "eslint"
   },
