@@ -15,16 +15,15 @@ export async function POST(req: NextRequest) {
       process.env.GEMINI_API_KEY;
 
     if (apiKey && apiKey.trim().length > 0) {
-      // Call Google Gemini API (gemini-1.5-flash / gemini-2.0-flash)
       const systemInstruction =
         "You are NEXUS AI, an expert, enthusiastic, and pedagogical AI tutor for NEXUS LEARN - Smart Education & Personalized Learning Platform. " +
         "Provide clear, structured, and easy-to-understand educational explanations with key principles, formulas, bullet points, and real-world examples. " +
         "Keep formatting clean with Markdown headers and bullet points.";
 
       const candidateModels = [
-        'gemini-2.5-flash',
         'gemini-2.0-flash',
         'gemini-1.5-flash',
+        'gemini-1.5-flash-8b',
         'gemini-flash-latest',
       ];
 
@@ -57,8 +56,19 @@ export async function POST(req: NextRequest) {
             }),
           });
 
+          // Handle 429 quota/overloaded - try next model instead of crashing
+          if (response.status === 429 || response.status === 503) {
+            console.warn(`Model ${modelName} overloaded (${response.status}), trying next...`);
+            continue;
+          }
+
           if (response.ok) {
             const data = await response.json();
+            // Check for API-level errors within the 200 response body
+            if (data.error) {
+              console.warn(`Model ${modelName} returned error:`, data.error?.message);
+              continue;
+            }
             const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
             if (candidate) {
               return NextResponse.json({
@@ -67,25 +77,28 @@ export async function POST(req: NextRequest) {
                 hasGeminiKey: true,
               });
             }
+          } else {
+            const errData = await response.json().catch(() => ({}));
+            console.warn(`Model ${modelName} responded ${response.status}:`, errData?.error?.message);
           }
         } catch (err) {
-          console.warn(`Model ${modelName} failed:`, err);
+          console.warn(`Model ${modelName} fetch error:`, err);
         }
       }
     }
 
-    // Graceful Intelligent Educational Fallback if no key or error
+    // Graceful educational fallback when all models are unavailable
     return NextResponse.json({
       reply: generateFallbackResponse(prompt),
       source: 'nexus-knowledge-engine',
       hasGeminiKey: false,
-      message: 'To use live Gemini LLM generation, configure your Gemini API Key in the Chatbot settings.',
+      message: 'Live AI is temporarily unavailable. Showing educational knowledge base response.',
     });
   } catch (error) {
     console.error('Error in /api/gemini route:', error);
     return NextResponse.json(
-      { error: 'Failed to process AI request', details: String(error) },
-      { status: 500 }
+      { reply: generateFallbackResponse('general education'), source: 'nexus-knowledge-engine', hasGeminiKey: false },
+      { status: 200 } // Return 200 with fallback so client doesn't crash
     );
   }
 }

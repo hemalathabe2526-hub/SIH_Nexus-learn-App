@@ -79,7 +79,8 @@ function VideoLabContent() {
 
     async function resolveVideo() {
       if (!selectedTopic) return;
-      // 1. Check if local video blob is in IndexedDB
+
+      // 1. If teacher uploaded a raw video file (stored in IndexedDB), use native HTML5 player
       const blobUrl = await getVideoBlobUrl(selectedTopic.id);
       if (!isMounted) return;
 
@@ -89,21 +90,24 @@ function VideoLabContent() {
         return;
       }
 
-      // 2. Check if topic has a direct video URL or is marked direct/local
-      if (selectedTopic.videoUrl) {
+      // 2. If teacher provided a direct video URL (MP4/WebM link), use native HTML5 player
+      if (selectedTopic.videoUrl && selectedTopic.videoUrl.trim()) {
         setDirectVideoSrc(selectedTopic.videoUrl);
         setPlayerMode('direct_video');
         return;
       }
 
-      // 3. If YouTube, check mode
-      if (selectedTopic.videoSource === 'direct' || selectedTopic.videoSource === 'local') {
-        setPlayerMode('direct_video');
-        setDirectVideoSrc(selectedTopic.videoUrl || null);
-      } else {
+      // 3. If teacher explicitly chose YouTube source AND provided a YouTube ID, try embed
+      if (selectedTopic.videoSource === 'youtube' && selectedTopic.youtubeId) {
         setPlayerMode('youtube');
         setDirectVideoSrc(null);
+        return;
       }
+
+      // 4. Default for ALL built-in syllabus topics: use the rich in-platform
+      //    interactive concept lecture (100% guaranteed to work, no YouTube restrictions)
+      setPlayerMode('interactive_concept');
+      setDirectVideoSrc(null);
     }
 
     resolveVideo();

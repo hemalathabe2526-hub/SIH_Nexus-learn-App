@@ -75,8 +75,15 @@ export default function AiChatbotWidget() {
         }),
       });
 
-      const data = await response.json();
-      const reply = data.reply || 'I could not generate an answer right now. Please try again.';
+      const data = response.ok ? await response.json() : null;
+
+      // If response failed or no reply, provide a graceful educational fallback
+      const reply = data?.reply ||
+        '🧠 **NEXUS AI Knowledge Engine** is active! While the live AI model is momentarily unavailable due to high demand, I can still help:\n\n' +
+        '- 📚 **Check your Video Lab** → Watch interactive concept lectures\n' +
+        '- 🧪 **Try 3D Virtual Labs** → Hands-on physics & chemistry simulations\n' +
+        '- 💻 **Open the Code Studio** → Practice Python, JS, C++ live\n\n' +
+        'Please try your question again in a moment, or use the quick chips below to explore!';
 
       // Determine suggested lab action based on query
       let action: { label: string; route: string } | undefined;
@@ -97,7 +104,7 @@ export default function AiChatbotWidget() {
         text: reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         suggestedAction: action,
-        isGemini: data.hasGeminiKey || data.source === 'gemini-1.5-flash',
+        isGemini: data?.hasGeminiKey || data?.source?.includes('gemini'),
       };
 
       setMessages(prev => [...prev, agentMsg]);
@@ -108,7 +115,7 @@ export default function AiChatbotWidget() {
         {
           id: `err_${Date.now()}`,
           sender: 'agent',
-          text: 'NEXUS Knowledge Engine: Connection error. Please verify your internet connection or check API keys.',
+          text: '🔄 **NEXUS AI is reconnecting...** The AI engine is momentarily busy. Please try your question again in a few seconds!',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
