@@ -47,7 +47,7 @@ export default function MobilePreviewPage() {
         </div>
 
         {/* Quick App Route Selectors */}
-        <div style={{ display: 'flex', gap: 6, background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ display: 'flex', gap: 6, background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', flexWrap: 'wrap' }}>
           {[
             { label: '🏠 Dashboard', route: '/dashboard' },
             { label: '📺 Video Lab', route: '/videolab' },
@@ -55,6 +55,8 @@ export default function MobilePreviewPage() {
             { label: '💻 Code', route: '/code' },
             { label: '🔊 Bhasha', route: '/bhasha' },
             { label: '🤖 Gemini AI', route: '/agent' },
+            { label: '🪄 Teacher', route: '/teacher' },
+            { label: '⚔️ RPG', route: '/rpg' },
           ].map(item => (
             <button
               key={item.route}
@@ -175,9 +177,9 @@ export default function MobilePreviewPage() {
               </div>
             </div>
 
-            {/* Embedded Live Web Application Viewport */}
+            {/* Embedded Live Web Application Viewport (Relative URL for 100% reliable multi-device / Vercel rendering) */}
             <iframe
-              src={`http://localhost:3000${currentRoute}`}
+              src={currentRoute}
               title="Android Live App Preview"
               style={{
                 flex: 1,
