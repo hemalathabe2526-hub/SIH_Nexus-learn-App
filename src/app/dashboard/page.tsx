@@ -117,6 +117,10 @@ export default function DashboardPage() {
   const [currentTime, setCurrentTime] = useState('');
   const [showSyllabus, setShowSyllabus] = useState(false);
   const [cloudTopics, setCloudTopics] = useState<import('@/lib/syllabusData').TeacherTopicPayload[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncCodeModal, setSyncCodeModal] = useState(false);
+  const [inputSyncCode, setInputSyncCode] = useState('');
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     const session = getStoredSession();
@@ -133,7 +137,35 @@ export default function DashboardPage() {
     tick();
     const id = setInterval(tick, 1000);
 
-    // Initial and periodic cloud sync for teacher syllabus topics across all laptops
+    // 1. Check for sync_topics in URL parameters (from teacher share link)
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const syncData = urlParams.get('sync_topics');
+      if (syncData) {
+        try {
+          const parsed = JSON.parse(decodeURIComponent(syncData));
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            import('@/lib/syllabusData').then(({ getTeacherCustomTopics, saveTeacherCustomTopic }) => {
+              const existing = getTeacherCustomTopics();
+              const map = new Map();
+              existing.forEach((t: import('@/lib/syllabusData').TeacherTopicPayload) => map.set(t.id, t));
+              parsed.forEach((t: import('@/lib/syllabusData').TeacherTopicPayload) => {
+                map.set(t.id, t);
+                saveTeacherCustomTopic(t);
+              });
+              const merged = Array.from(map.values()) as import('@/lib/syllabusData').TeacherTopicPayload[];
+              setCloudTopics(merged);
+              setSyncFeedback(`✅ Successfully imported ${parsed.length} custom topics from your Teacher!`);
+              setTimeout(() => setSyncFeedback(null), 5000);
+            });
+          }
+        } catch (err) {
+          console.warn('Failed to parse sync_topics URL param:', err);
+        }
+      }
+    }
+
+    // 2. Initial and periodic cloud sync for teacher syllabus topics across all laptops
     const syncTopics = async () => {
       const { fetchTeacherTopicsCloud } = await import('@/lib/syllabusData');
       const topics = await fetchTeacherTopicsCloud();
@@ -147,6 +179,55 @@ export default function DashboardPage() {
       clearInterval(syncInterval);
     };
   }, [router]);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      const { fetchTeacherTopicsCloud } = await import('@/lib/syllabusData');
+      const topics = await fetchTeacherTopicsCloud();
+      setCloudTopics(topics);
+      setSyncFeedback(`✅ Cloud sync complete! Loaded ${topics.length} teacher topics.`);
+    } catch {
+      setSyncFeedback('⚠️ Cloud sync failed. Using cached syllabus.');
+    }
+    setTimeout(() => {
+      setIsSyncing(false);
+      setTimeout(() => setSyncFeedback(null), 4000);
+    }, 600);
+  };
+
+  const handleImportSyncCode = async () => {
+    if (!inputSyncCode.trim()) return;
+    try {
+      let parsed;
+      try {
+        parsed = JSON.parse(decodeURIComponent(inputSyncCode.trim()));
+      } catch {
+        parsed = JSON.parse(inputSyncCode.trim());
+      }
+
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const { getTeacherCustomTopics, saveTeacherCustomTopic } = await import('@/lib/syllabusData');
+        const existing = getTeacherCustomTopics();
+        const map = new Map();
+        existing.forEach((t: import('@/lib/syllabusData').TeacherTopicPayload) => map.set(t.id, t));
+        parsed.forEach((t: import('@/lib/syllabusData').TeacherTopicPayload) => {
+          map.set(t.id, t);
+          saveTeacherCustomTopic(t);
+        });
+        const merged = Array.from(map.values()) as import('@/lib/syllabusData').TeacherTopicPayload[];
+        setCloudTopics(merged);
+        setSyncFeedback(`✅ Imported ${parsed.length} custom topics successfully!`);
+        setSyncCodeModal(false);
+        setInputSyncCode('');
+        setTimeout(() => setSyncFeedback(null), 4000);
+      } else {
+        alert('Invalid sync code format. Please check the code and try again.');
+      }
+    } catch {
+      alert('Could not decode sync code. Please check the code format.');
+    }
+  };
 
   const handleLogout = () => {
     logoutUser();
@@ -275,25 +356,90 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Sync Feedback Toast */}
+        {syncFeedback && (
+          <div style={{ padding: '12px 18px', borderRadius: 12, marginBottom: 16, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>{syncFeedback}</span>
+            <button onClick={() => setSyncFeedback(null)} style={{ background: 'transparent', border: 'none', color: '#10b981', cursor: 'pointer', fontWeight: 800 }}>✕</button>
+          </div>
+        )}
+
         {/* Syllabus Panel */}
         {showSyllabus && (
           <div style={{ padding: 20, borderRadius: 18, marginBottom: 20, background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.2)' }}>
-            <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 15, color: '#a855f7', marginBottom: 14 }}>📚 Your Syllabus ({activeRole.toUpperCase()})</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 15, color: '#a855f7', margin: 0 }}>📚 Your Syllabus ({activeRole.toUpperCase()})</h2>
+                {cloudTopics.length > 0 && (
+                  <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: 'rgba(0,212,255,0.15)', color: '#00d4ff', fontWeight: 700 }}>
+                    ✨ {cloudTopics.length} Teacher Topics Active
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={handleManualSync}
+                  disabled={isSyncing}
+                  style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit' }}
+                >
+                  {isSyncing ? '⏳ Syncing...' : '🔄 Sync with Teacher'}
+                </button>
+                <button
+                  onClick={() => setSyncCodeModal(true)}
+                  style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.3)', color: '#c084fc', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit' }}
+                >
+                  📥 Enter Sync Code
+                </button>
+              </div>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
-              {syllabus.map(topic => (
-                <div key={topic.id} style={{ padding: 14, borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: `1px solid ${currentUser.completedTopics?.includes(topic.id) ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.07)'}` }}>
-                  <div style={{ fontSize: 11, color: '#a855f7', fontWeight: 700, marginBottom: 3 }}>{topic.subject}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 6 }}>{topic.title}</div>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>⏱ {topic.durationMinutes} min</span>
-                    {currentUser.completedTopics?.includes(topic.id) && <span style={{ fontSize: 10, color: '#10b981' }}>✓ Completed</span>}
+              {syllabus.map(topic => {
+                const isTeacherCustom = cloudTopics.some(t => t.id === topic.id);
+                return (
+                  <div key={topic.id} style={{ padding: 14, borderRadius: 12, background: isTeacherCustom ? 'rgba(0,212,255,0.04)' : 'rgba(255,255,255,0.03)', border: `1px solid ${isTeacherCustom ? 'rgba(0,212,255,0.3)' : currentUser.completedTopics?.includes(topic.id) ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.07)'}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                      <span style={{ fontSize: 11, color: isTeacherCustom ? '#00d4ff' : '#a855f7', fontWeight: 700 }}>{topic.subject}</span>
+                      {isTeacherCustom && (
+                        <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(0,212,255,0.2)', color: '#00d4ff', fontWeight: 700 }}>Teacher Added</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 6 }}>{topic.title}</div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>⏱ {topic.durationMinutes} min</span>
+                      {currentUser.completedTopics?.includes(topic.id) && <span style={{ fontSize: 10, color: '#10b981' }}>✓ Completed</span>}
+                    </div>
+                    <Link href={`/videolab?topic=${topic.id}`}
+                      style={{ display: 'inline-block', marginTop: 8, fontSize: 11, color: '#00d4ff', textDecoration: 'none', fontWeight: 700 }}>
+                      ▶ Watch Video →
+                    </Link>
                   </div>
-                  <Link href={`/videolab?topic=${topic.id}`}
-                    style={{ display: 'inline-block', marginTop: 8, fontSize: 11, color: '#00d4ff', textDecoration: 'none', fontWeight: 700 }}>
-                    ▶ Watch Video →
-                  </Link>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Sync Code Modal */}
+        {syncCodeModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(2,4,8,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ width: 440, padding: 26, borderRadius: 20, background: '#0a1628', border: '1px solid rgba(168,85,247,0.4)' }}>
+              <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 18, color: '#c084fc', marginBottom: 8 }}>
+                📥 Import Teacher Syllabus Code
+              </h3>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 14 }}>
+                Paste the syllabus code or link shared by your teacher to immediately sync new topics to your dashboard:
+              </p>
+              <textarea
+                value={inputSyncCode}
+                onChange={e => setInputSyncCode(e.target.value)}
+                placeholder="Paste teacher syllabus code or link here..."
+                style={{ width: '100%', minHeight: 90, padding: '10px 12px', borderRadius: 10, background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', fontSize: 12, outline: 'none', fontFamily: 'JetBrains Mono', boxSizing: 'border-box', marginBottom: 16 }}
+              />
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button onClick={() => setSyncCodeModal(false)} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', cursor: 'pointer', fontFamily: 'Outfit', fontSize: 12 }}>Cancel</button>
+                <button onClick={handleImportSyncCode} style={{ padding: '8px 20px', borderRadius: 8, background: 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit', fontSize: 12 }}>Import Syllabus</button>
+              </div>
             </div>
           </div>
         )}

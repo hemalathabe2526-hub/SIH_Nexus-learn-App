@@ -636,9 +636,54 @@ export default function TeacherPage() {
 
             {/* ── EXISTING CUSTOM TOPICS LIST ── */}
             <div>
-              <h3 style={{ fontFamily: 'Space Grotesk', fontSize: 15, fontWeight: 700, color: 'white', margin: '0 0 16px' }}>
-                📖 Published Content ({customTopics.length} items)
-              </h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, margin: '0 0 16px' }}>
+                <h3 style={{ fontFamily: 'Space Grotesk', fontSize: 15, fontWeight: 700, color: 'white', margin: 0 }}>
+                  📖 Published Content ({customTopics.length} items)
+                </h3>
+                {customTopics.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      onClick={async () => {
+                        // 1. Broadcast all topics to cloud API
+                        try {
+                          await Promise.all(customTopics.map(t => fetch('/api/teacher-topics', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(t),
+                          })));
+                        } catch {}
+
+                        // 2. Generate share link
+                        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://sih-nexus-learn-app.vercel.app';
+                        const safePayload = encodeURIComponent(JSON.stringify(customTopics));
+                        const shareUrl = `${origin}/dashboard?sync_topics=${safePayload}`;
+                        navigator.clipboard.writeText(shareUrl);
+                        alert('✅ Syllabus Broadcasted & Share Link Copied to Clipboard!\n\nSend this link to your friends/students so they immediately see all topics on their laptops:\n' + shareUrl);
+                      }}
+                      style={{ padding: '7px 14px', borderRadius: 8, background: 'linear-gradient(135deg, #0066ff, #00d4ff)', border: 'none', color: 'white', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Outfit' }}
+                    >
+                      🔗 Copy Student Share Link ({customTopics.length} Topics)
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await Promise.all(customTopics.map(t => fetch('/api/teacher-topics', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(t),
+                          })));
+                          alert('✅ All ' + customTopics.length + ' topics pushed to the central cloud API! Students can refresh or sync now.');
+                        } catch {
+                          alert('❌ Cloud broadcast failed. Please try again.');
+                        }
+                      }}
+                      style={{ padding: '7px 14px', borderRadius: 8, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Outfit' }}
+                    >
+                      🔄 Re-Broadcast to Cloud
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {customTopics.length === 0 ? (
                 <div style={{ padding: 40, textAlign: 'center', borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)' }}>
