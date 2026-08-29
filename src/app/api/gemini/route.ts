@@ -16,17 +16,18 @@ export async function POST(req: NextRequest) {
       customApiKey ||
       process.env.GEMINI_API_KEY;
 
-    // If a valid Google API key is provided (usually starts with AIza or has valid length)
-    if (apiKey && apiKey.trim().length >= 20 && apiKey.trim().startsWith('AIza')) {
+    // Check for API key (supports AQ... and AIza... keys)
+    if (apiKey && apiKey.trim().length >= 10) {
       const systemInstruction =
         "You are NEXUS AI, an expert, encouraging, and highly accurate educational AI tutor for the NEXUS LEARN Smart Education Platform. " +
         "Answer the user's question directly, accurately, and thoroughly with clear step-by-step explanations, formulas, definitions, code snippets, or bullet points as appropriate. " +
         "Format your answer cleanly with Markdown headings, bold text, and code blocks.";
 
       const candidateModels = [
-        'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash',
+        'gemini-3.6-flash',
+        'gemini-3.7-flash',
+        'gemini-3.5-flash',
+        'gemini-flash-latest',
       ];
 
       const contents = [
