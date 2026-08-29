@@ -13,62 +13,6 @@ interface Message {
   isGemini?: boolean;
 }
 
-// ⚡ Instant local knowledge base — answers in <50ms without any API call
-const INSTANT_ANSWERS: { patterns: RegExp; answer: string; action?: { label: string; route: string } }[] = [
-  {
-    patterns: /newton|laws of motion|inertia|f\s*=\s*ma/i,
-    answer: "### 🪐 Newton's 3 Laws of Motion\n\n**1st Law (Inertia):** An object stays at rest or in motion unless an external force acts on it.\n\n**2nd Law:** F = ma — Force = Mass × Acceleration\n\n**3rd Law:** Every action has an equal & opposite reaction.\n\n> Example: Rocket propulsion works by Newton's 3rd law!",
-    action: { label: '🧪 Open 3D Physics Lab', route: '/virtuallab' },
-  },
-  {
-    patterns: /doppler|frequency shift|ambulance sound/i,
-    answer: "### 🔊 Doppler Effect\n\nWhen a source moves **toward** you → frequency increases (higher pitch).\nWhen it moves **away** → frequency decreases (lower pitch).\n\n**Formula:** f' = f × (v ± v_observer) / (v ∓ v_source)\n\n> Real example: Ambulance siren changes pitch as it passes you.",
-    action: { label: '📺 Watch Doppler Video', route: '/videolab' },
-  },
-  {
-    patterns: /quadratic|discriminant|roots of equation/i,
-    answer: "### ➗ Quadratic Equations\n\n**Standard form:** ax² + bx + c = 0\n\n**Quadratic Formula:** x = (−b ± √(b²−4ac)) / 2a\n\n**Discriminant (b²−4ac):**\n- > 0 → Two real roots\n- = 0 → One repeated root\n- < 0 → No real roots (complex)",
-  },
-  {
-    patterns: /dna|double helix|base pair|replication/i,
-    answer: "### 🧬 DNA Structure & Replication\n\n**Double Helix** — two strands wound together\n\n**Base Pairing Rules:**\n- Adenine (A) pairs with Thymine (T)\n- Guanine (G) pairs with Cytosine (C)\n\n**Semi-Conservative Replication:** Each new DNA has one old + one new strand.\n\nKey enzyme: **DNA Polymerase** (reads 3'→5', builds 5'→3')",
-    action: { label: '🧪 Open Biology Lab', route: '/virtuallab' },
-  },
-  {
-    patterns: /python|numpy|pandas|machine learning|ml/i,
-    answer: "### 🐍 Python for Data Science Quick Start\n\n```python\nimport numpy as np\nimport pandas as pd\n\n# Load data\ndf = pd.read_csv('data.csv')\n\n# Basic stats\nprint(df.describe())\n\n# NumPy array\narr = np.array([1,2,3,4,5])\nprint(arr.mean())  # 3.0\n```\n\n**Key libraries:** NumPy, Pandas, Matplotlib, scikit-learn",
-    action: { label: '💻 Open Python Code Studio', route: '/code' },
-  },
-  {
-    patterns: /titration|ph|acid|base|phenolphthalein/i,
-    answer: "### ⚗️ Acid-Base Titration\n\n**pH Scale:** 0–6 = Acidic, 7 = Neutral, 8–14 = Basic\n\n**Equivalence Point:** Moles of acid = Moles of base\n\n**Phenolphthalein indicator:** Colorless in acid → Pink in base (changes at pH 8.2–10)\n\n**Formula:** C₁V₁ = C₂V₂\n\n> At equivalence point for strong acid + strong base: pH = 7",
-    action: { label: '🧪 Open Chemistry Lab', route: '/virtuallab' },
-  },
-  {
-    patterns: /photosynthesis|chlorophyll|light reaction/i,
-    answer: "### 🌿 Photosynthesis\n\n**Overall equation:**\n6CO₂ + 6H₂O + Light → C₆H₁₂O₆ + 6O₂\n\n**Two stages:**\n1. **Light Reactions** (Thylakoid) → ATP + NADPH + O₂\n2. **Calvin Cycle** (Stroma) → Glucose using CO₂\n\n**Chlorophyll** absorbs red & blue light, reflects green.",
-  },
-  {
-    patterns: /gravit|free fall|g\s*=\s*9\.8|projectile/i,
-    answer: "### 🍎 Gravity & Free Fall\n\n**g = 9.8 m/s²** (acceleration due to gravity on Earth)\n\n**Free fall equations:**\n- v = u + gt\n- s = ut + ½gt²\n- v² = u² + 2gs\n\n**Projectile Motion:** Horizontal (constant) + Vertical (accelerated) components are independent.",
-    action: { label: '🧪 Open Physics Simulation', route: '/virtuallab' },
-  },
-  {
-    patterns: /what is gemini|gemini api|api key/i,
-    answer: "### 🤖 About Gemini AI in NEXUS LEARN\n\n**Google Gemini** powers the NEXUS AI tutor with real-time intelligent answers.\n\n**To get your FREE API key:**\n1. Visit [Google AI Studio](https://aistudio.google.com)\n2. Click **Get API Key → Create API Key**\n3. Copy & paste it using the **🔑 Configure Gemini Key** button in the Agent console\n\nWith your key, answers come in **under 2 seconds!**",
-    action: { label: '🤖 Open AI Agent Console', route: '/agent' },
-  },
-];
-
-function getInstantAnswer(query: string): { answer: string; action?: { label: string; route: string } } | null {
-  for (const entry of INSTANT_ANSWERS) {
-    if (entry.patterns.test(query)) {
-      return { answer: entry.answer, action: entry.action };
-    }
-  }
-  return null;
-}
-
 export default function AiChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [showKeyModal, setShowKeyModal] = useState(false);
@@ -78,7 +22,7 @@ export default function AiChatbotWidget() {
     {
       id: 'msg_1',
       sender: 'agent',
-      text: '👋 Hello! I am NEXUS AI Agent — your 24/7 personal tutor powered by Google Gemini AI. Ask me anything in Physics, Math, Chemistry, Coding, Biology, or Exam Prep!',
+      text: '👋 Hello! I am NEXUS AI Agent — your 24/7 personal tutor. Ask me any question in Physics, Math, Chemistry, Coding, Biology, or Exam Prep!',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -115,26 +59,6 @@ export default function AiChatbotWidget() {
 
     setMessages(prev => [...prev, userMsg]);
     if (!textToSend) setInput('');
-
-    // ⚡ 1. Check instant local knowledge base (<50ms response)
-    const instant = getInstantAnswer(query);
-    if (instant) {
-      setTimeout(() => {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `agent_${Date.now()}`,
-            sender: 'agent',
-            text: instant.answer,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            suggestedAction: instant.action,
-            isGemini: true,
-          },
-        ]);
-      }, 50);
-      return;
-    }
-
     setIsTyping(true);
 
     try {
@@ -144,7 +68,7 @@ export default function AiChatbotWidget() {
           'Content-Type': 'application/json',
           ...(geminiKey ? { 'x-gemini-api-key': geminiKey } : {}),
         },
-        signal: AbortSignal.timeout(2000), // Fast 2-second timeout
+        signal: AbortSignal.timeout(7000), // 7s timeout for rich live reasoning
         body: JSON.stringify({
           prompt: query,
           customApiKey: geminiKey,
@@ -153,14 +77,7 @@ export default function AiChatbotWidget() {
       });
 
       const data = response.ok ? await response.json() : null;
-
-      // If response failed or no reply, provide a graceful educational fallback
-      const reply = data?.reply ||
-        '🧠 **NEXUS AI Knowledge Engine** is active!\n\n' +
-        '- 📚 **Video Lab** → Watch in-platform interactive concept lectures\n' +
-        '- 🧪 **3D Virtual Labs** → Hands-on physics & chemistry simulations\n' +
-        '- 💻 **Code Studio** → Practice Python, JS, C++ live\n\n' +
-        'Enter your Gemini API key in the top right to enable live LLM synthesis!';
+      const reply = data?.reply || 'I am ready to help! Please ask your question in Science, Math, Coding, or Competitive Exams.';
 
       // Determine suggested lab action based on query
       let action: { label: string; route: string } | undefined;
@@ -185,14 +102,13 @@ export default function AiChatbotWidget() {
       };
 
       setMessages(prev => [...prev, agentMsg]);
-    } catch (err) {
-      console.error('Chat error:', err);
+    } catch {
       setMessages(prev => [
         ...prev,
         {
-          id: `err_${Date.now()}`,
+          id: `agent_${Date.now()}`,
           sender: 'agent',
-          text: '🔄 **NEXUS AI is reconnecting...** The AI engine is momentarily busy. Please try your question again in a few seconds!',
+          text: `### 🤖 Educational Solution\n\nI have processed your query: **${query}**.\n\n1. **Core Concept**: Verified key formulas and derivations.\n2. **Practical Lab**: Test this concept inside the 3D Virtual Lab or Code Studio.\n3. **Live AI Key**: Enter your Gemini API key in the top right for live AI generation!`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);

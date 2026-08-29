@@ -120,7 +120,7 @@ export default function AgentPage() {
           'Content-Type': 'application/json',
           ...(geminiKey ? { 'x-gemini-api-key': geminiKey } : {}),
         },
-        signal: AbortSignal.timeout(2000), // Fast 2s timeout
+        signal: AbortSignal.timeout(7000), // 7s timeout for rich live reasoning
         body: JSON.stringify({
           prompt: text,
           customApiKey: geminiKey,
@@ -129,7 +129,7 @@ export default function AgentPage() {
       });
 
       const data = response.ok ? await response.json() : null;
-      const replyText = data?.reply || '🧠 NEXUS AI Agent: Here is your core educational summary. Configure your Gemini API key in the top right for live custom generation!';
+      const replyText = data?.reply || 'I am ready to help! Please ask your question in Science, Math, Coding, or Competitive Exams.';
 
       let action: { label: string; route: string } | undefined;
       const q = text.toLowerCase();
