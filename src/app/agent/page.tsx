@@ -120,7 +120,7 @@ export default function AgentPage() {
           'Content-Type': 'application/json',
           ...(geminiKey ? { 'x-gemini-api-key': geminiKey } : {}),
         },
-        signal: AbortSignal.timeout(20000), // 20s timeout for rich live reasoning
+        signal: AbortSignal.timeout(60000), // 60s timeout for rich live reasoning
         body: JSON.stringify({
           prompt: text,
           customApiKey: geminiKey,
