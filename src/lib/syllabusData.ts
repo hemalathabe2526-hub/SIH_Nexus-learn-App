@@ -37,6 +37,41 @@ export interface CodingProblem {
   solutionExplanation: string;
 }
 
+// Custom Teacher Content Store Helpers
+export interface TeacherTopicPayload extends SyllabusTopic {
+  targetRole: 'school' | 'college' | 'aspirant' | 'skill' | 'all';
+  createdByTeacher?: string;
+  createdAt?: string;
+  customQuiz?: QuizQuestion[];
+}
+
+export function getTeacherCustomTopics(): TeacherTopicPayload[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem('nexus_teacher_topics');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveTeacherCustomTopic(topic: TeacherTopicPayload): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = getTeacherCustomTopics();
+    const updated = [topic, ...existing.filter(t => t.id !== topic.id)];
+    localStorage.setItem('nexus_teacher_topics', JSON.stringify(updated));
+  } catch (err) {
+    console.error('Failed to save custom teacher topic:', err);
+  }
+}
+
+export function getCombinedSyllabus(role: string): SyllabusTopic[] {
+  const base = ROLE_SYLLABUS[role] || ROLE_SYLLABUS['school'] || [];
+  const custom = getTeacherCustomTopics().filter(t => t.targetRole === role || t.targetRole === 'all');
+  return [...custom, ...base];
+}
+
 // VERIFIED working YouTube video IDs for educational content
 export const ROLE_SYLLABUS: Record<string, SyllabusTopic[]> = {
   school: [

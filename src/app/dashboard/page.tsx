@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getStoredSession, logoutUser, canAccessRoleContent, type UserRole, type UserProfile } from '@/lib/authStore';
-import { ROLE_SYLLABUS } from '@/lib/syllabusData';
+import { ROLE_SYLLABUS, getCombinedSyllabus } from '@/lib/syllabusData';
 
 const ROLE_CONFIGS: Record<UserRole, {
   title: string;
@@ -142,7 +142,7 @@ export default function DashboardPage() {
   const activeRole = currentUser && currentUser.role === 'teacher' ? role : currentUser?.role ?? 'school';
   const isRoleAccessible = (targetRole: UserRole) => canAccessRoleContent(currentUser, targetRole);
   const config = ROLE_CONFIGS[activeRole] || ROLE_CONFIGS['school'];
-  const syllabus = ROLE_SYLLABUS[activeRole] || [];
+  const syllabus = getCombinedSyllabus(activeRole);
 
   if (!currentUser) return null;
 

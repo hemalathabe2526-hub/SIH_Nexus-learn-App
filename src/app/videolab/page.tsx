@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getStoredSession } from '@/lib/authStore';
-import { ROLE_SYLLABUS, TOPIC_QUIZZES, type SyllabusTopic, type QuizQuestion } from '@/lib/syllabusData';
+import { ROLE_SYLLABUS, TOPIC_QUIZZES, getCombinedSyllabus, getTeacherCustomTopics, type SyllabusTopic, type QuizQuestion } from '@/lib/syllabusData';
 
 export default function VideoLabPage() {
   return (
@@ -39,7 +39,7 @@ function VideoLabContent() {
       router.replace('/login');
       return;
     }
-    const userSyllabus = ROLE_SYLLABUS[currentUser.role] || ROLE_SYLLABUS['school'];
+    const userSyllabus = getCombinedSyllabus(currentUser.role);
     setSyllabus(userSyllabus);
     setVideoUnavailable(false);
 
