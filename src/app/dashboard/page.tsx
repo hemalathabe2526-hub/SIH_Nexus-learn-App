@@ -306,6 +306,64 @@ export default function DashboardPage() {
       </div>
 
       <div style={{ maxWidth: 1300, margin: '0 auto', padding: '28px 24px' }}>
+        {/* High-Impact Innovation Suite Showcase Banner */}
+        <div style={{
+          padding: '16px 20px', borderRadius: 16, marginBottom: 24,
+          background: 'linear-gradient(135deg, rgba(0,102,255,0.08), rgba(168,85,247,0.08), rgba(16,185,129,0.08))',
+          border: '1px solid rgba(0,212,255,0.25)', display: 'flex', flexDirection: 'column', gap: 12,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 18 }}>??</span>
+              <span style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 14, color: '#00d4ff', letterSpacing: 0.5 }}>
+                HIGH-IMPACT INNOVATION SUITE (ACCESSIBILITY LADDER & DIGITAL DIVIDE)
+              </span>
+            </div>
+            <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: 'rgba(16,185,129,0.2)', color: '#10b981', fontWeight: 700 }}>
+              Live SIH Features Active
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+            <Link href="/virtuallab/snap" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,212,255,0.2)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>??</span>
+              <span>Snap & Simulate 3D</span>
+            </Link>
+            <Link href="/viva" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(16,185,129,0.2)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>???</span>
+              <span>Socratic Viva Voice</span>
+            </Link>
+            <Link href="/whatsapp-lms" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,168,132,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>??</span>
+              <span>WhatsApp Micro-LMS</span>
+            </Link>
+            <Link href="/dial-in" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(245,158,11,0.2)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>??</span>
+              <span>1800 Toll-Free Call</span>
+            </Link>
+            <Link href="/mesh" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(16,185,129,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>??</span>
+              <span>Village Mesh Swarm</span>
+            </Link>
+            <Link href="/virtuallab/ar" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(168,85,247,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>??</span>
+              <span>Desk WebXR AR</span>
+            </Link>
+            <Link href="/code/reverse-debug" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(239,68,68,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>???</span>
+              <span>Reverse Debugger</span>
+            </Link>
+            <Link href="/rpg-multiplayer" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(245,158,11,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>??</span>
+              <span>Co-Op Dungeon Raid</span>
+            </Link>
+            <Link href="/credentials" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,212,255,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>??</span>
+              <span>Open Badges 3.0</span>
+            </Link>
+          </div>
+        </div>
+
         {/* User Role Selector */}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
           {[

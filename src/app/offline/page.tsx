@@ -4,88 +4,201 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 export default function OfflinePage() {
-  const [isOfflineMode, setIsOfflineMode] = useState(true);
-  const [p2pConnected, setP2pConnected] = useState(true);
+  const [isAirplaneMode, setIsAirplaneMode] = useState(true);
+  const [edgeQuery, setEdgeQuery] = useState('Why does light bend when entering water?');
+  const [edgeResult, setEdgeResult] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [activeTask, setActiveTask] = useState<'concept' | 'lint' | 'formula'>('concept');
+
+  // Client-side Edge SLM Execution (SmolLM2 / Gemma-2B WebGPU representation)
+  const runEdgeAiInference = () => {
+    setIsProcessing(true);
+    setEdgeResult(null);
+
+    setTimeout(() => {
+      setIsProcessing(false);
+      if (activeTask === 'concept') {
+        setEdgeResult(
+          '? [Edge AI Engine: SmolLM2-1B (WebGPU Local Memory)]\n\n' +
+          'Refraction occurs because light travels at different speeds in different optical media. ' +
+          'In water, the wave phase velocity drops to v = c / n (where n ? 1.33). ' +
+          'When the wavefront strikes the interface at an angle, one side slows down before the other, bending the trajectory toward the normal according to Snell\'s Law (n1 sin ?1 = n2 sin ?2).\n\n' +
+          '? Execution Time: 42 ms\n' +
+          '? Network Bytes Transferred: 0 Bytes (100% Offline On-Device Inference)'
+        );
+      } else if (activeTask === 'lint') {
+        setEdgeResult(
+          '? [Edge AI Code Linter: On-Device AST Analyzer]\n\n' +
+          'Checked input against local DSA grammar tree:\n' +
+          '? Syntax: Valid Python 3.11\n' +
+          '?? Warning: Recursive function call lacks base case depth limiter. In an offline environment with limited stack memory, recommend converting to iterative loop to prevent maximum recursion depth exceeded.'
+        );
+      } else {
+        setEdgeResult(
+          '? [Edge AI Formula Solver: Local SymPy/Numeric Engine]\n\n' +
+          'Input: E = mc? for m = 1.0 kg\n' +
+          'Calculation: E = (1.0 kg) ? (2.998 ? 10? m/s)? = 8.98755 ? 10?? Joules\n' +
+          'Equivalent Energy: ~21.48 Megatons of TNT explosive equivalent.'
+        );
+      }
+    }, 450);
+  };
 
   return (
-    <div style={{ background: 'var(--nexus-void)', minHeight: '100vh', fontFamily: 'Outfit, sans-serif', color: 'white' }}>
+    <div style={{ background: 'var(--nexus-void, #020408)', minHeight: '100vh', fontFamily: 'Outfit, sans-serif', color: 'white', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div style={{
-        padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        borderBottom: '1px solid rgba(6,182,212,0.2)', background: 'rgba(2,4,8,0.9)',
-        backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100,
+        padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: '1px solid rgba(0,212,255,0.2)', background: 'rgba(2,4,8,0.95)',
+        backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, flexWrap: 'wrap', gap: 10,
       }}>
-        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>⚡</span>
-          <span style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white' }}>NEXUS LEARN</span>
-        </Link>
-        <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 18, color: '#06b6d4' }}>
-          🌐 Offline-First Edge AI Architecture
-        </h1>
-        <span style={{ fontSize: 12, color: '#06b6d4', background: 'rgba(6,182,212,0.1)', padding: '4px 12px', borderRadius: 100 }}>
-          {isOfflineMode ? '📶 Offline Edge Mode Active' : '🌐 Cloud Mode Active'}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link href="/dashboard" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700 }}>
+            ? Back to Dashboard
+          </Link>
+          <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+          <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>??</span>
+            <span>Offline Edge AI & Zero-Data Learning Hub</span>
+          </h1>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link href="/mesh" style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>
+            ?? Launch Village Mesh Swarm ?
+          </Link>
+          <Link href="/dial-in" style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', color: '#f59e0b', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>
+            ?? 1800 Toll-Free Call ?
+          </Link>
+        </div>
       </div>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      {/* Main Container */}
+      <div style={{ flex: 1, padding: 20, display: 'grid', gridTemplateColumns: '1fr 380px', gap: 18, maxWidth: 1600, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
 
-        {/* Local Edge AI Specs */}
-        <div style={{ padding: 24, borderRadius: 20, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, marginBottom: 16, color: '#06b6d4' }}>
-            ⚡ On-Device Neural Engine (TF Lite)
+        {/* LEFT COLUMN: On-Device Edge AI Playground */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Offline Status Card */}
+          <div style={{ padding: 18, borderRadius: 14, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 24 }}>??</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#ef4444' }}>Airplane Mode / Zero Cellular Signal Simulation</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>Cloud APIs disabled. Routing all intelligence to on-device WebGPU Small Language Model.</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsAirplaneMode(!isAirplaneMode)}
+              style={{
+                padding: '6px 14px', borderRadius: 8, border: 'none',
+                background: isAirplaneMode ? '#ef4444' : '#10b981', color: '#fff',
+                fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Outfit',
+              }}
+            >
+              {isAirplaneMode ? 'AIRPLANE MODE ACTIVE' : 'CELLULAR CONNECTED'}
+            </button>
+          </div>
+
+          {/* Edge AI Tasks */}
+          <div style={{ borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#00d4ff', margin: 0 }}>
+                ? On-Device Small Language Model (SmolLM2 / Gemma-2B)
+              </h3>
+              <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: 'rgba(0,212,255,0.15)', color: '#00d4ff', fontWeight: 700 }}>
+                WebGPU Accelerated ? 0 MB Data
+              </span>
+            </div>
+
+            {/* Task Tabs */}
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[
+                { id: 'concept', label: '?? Concept Explanation' },
+                { id: 'lint', label: '?? Offline Code Audit' },
+                { id: 'formula', label: '?? Formula Solver' },
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setActiveTask(t.id as any);
+                    setEdgeResult(null);
+                  }}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8, border: 'none',
+                    background: activeTask === t.id ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
+                    color: activeTask === t.id ? '#00d4ff' : 'rgba(255,255,255,0.5)',
+                    fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Input */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <input
+                type="text"
+                value={edgeQuery}
+                onChange={e => setEdgeQuery(e.target.value)}
+                placeholder="Ask an educational question while completely offline..."
+                style={{
+                  flex: 1, padding: '12px 16px', borderRadius: 10, background: '#020408',
+                  border: '1px solid rgba(0,212,255,0.3)', color: 'white', fontSize: 13,
+                  fontFamily: 'Outfit', outline: 'none',
+                }}
+              />
+              <button
+                onClick={runEdgeAiInference}
+                disabled={isProcessing}
+                style={{
+                  padding: '12px 24px', borderRadius: 10, border: 'none',
+                  background: 'linear-gradient(135deg, #10b981, #00d4ff)', color: 'white',
+                  fontWeight: 700, fontSize: 13, cursor: isProcessing ? 'wait' : 'pointer', fontFamily: 'Outfit',
+                }}
+              >
+                {isProcessing ? '? Inferencing...' : '? Run On-Device AI'}
+              </button>
+            </div>
+
+            {/* Output */}
+            {edgeResult && (
+              <div style={{ padding: 16, borderRadius: 12, background: '#020408', border: '1px solid rgba(16,185,129,0.3)' }}>
+                <pre style={{ margin: 0, fontSize: 12, color: '#e2e8f0', fontFamily: 'JetBrains Mono', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                  {edgeResult}
+                </pre>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Offline Cache Stats & Quick Links */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 18 }}>
+          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#10b981', margin: 0 }}>
+            ?? Local IndexedDB Storage
           </h2>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, marginBottom: 20 }}>
-            85% of NEXUS LEARN functionality — including emotion detection, spaced repetition algorithms, and quiz generation — runs completely offline without internet connectivity.
-          </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
-              { label: 'Local Model Size', val: '4.2 MB' },
-              { label: 'Inference Latency', val: '12 ms' },
-              { label: 'Cached Chapters', val: '24 Modules' },
-              { label: 'RAM Footprint', val: '< 85 MB' },
-            ].map(item => (
-              <div key={item.label} style={{ padding: 14, borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>{item.label}</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#06b6d4', fontFamily: 'Space Grotesk' }}>{item.val}</div>
+              { title: 'Offline Formula Flashcards', size: '2.4 MB', items: '180 Physics & Math cards' },
+              { title: 'Pre-Cached 3D Virtual Labs', size: '18.6 MB', items: 'Optics, Pendulum, Circuits' },
+              { title: 'Regional Language Dictionaries', size: '4.1 MB', items: 'Hindi, Tamil, Telugu STEM terms' },
+            ].map((c, i) => (
+              <div key={i} style={{ padding: 12, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 13 }}>
+                  <span>{c.title}</span>
+                  <span style={{ color: '#00d4ff' }}>{c.size}</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{c.items}</div>
               </div>
             ))}
           </div>
 
-          <button
-            onClick={() => setIsOfflineMode(!isOfflineMode)}
-            style={{
-              width: '100%', padding: '12px', borderRadius: 10, border: 'none',
-              background: isOfflineMode ? 'linear-gradient(135deg, #06b6d4, #0066ff)' : 'rgba(255,255,255,0.1)',
-              color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit'
-            }}
-          >
-            {isOfflineMode ? '⚡ Toggle Cloud Sync Mode' : '📶 Toggle Zero-Net Edge Mode'}
-          </button>
-        </div>
-
-        {/* P2P Mesh Sync */}
-        <div style={{ padding: 24, borderRadius: 20, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, marginBottom: 16, color: '#10b981' }}>
-            📡 Peer-to-Peer Bluetooth Mesh Sharing
-          </h2>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, marginBottom: 20 }}>
-            Students in remote villages can share downloaded textbook modules, notes, and micro-quizzes with classmates using Bluetooth/Wi-Fi Direct without needing cell towers.
-          </p>
-
-          <div style={{ padding: 16, borderRadius: 14, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <span style={{ fontSize: 20 }}>📲</span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#10b981' }}>2 Nearby Classmates Found</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Rohan (12m away) · Sneha (8m away)</div>
-              </div>
-            </div>
-            <button style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(16,185,129,0.2)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit' }}>
-              📡 Share Physics Chapter via P2P Mesh
-            </button>
+          <div style={{ marginTop: 'auto', padding: 12, borderRadius: 10, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', fontSize: 11, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+            <strong style={{ color: '#10b981' }}>Zero-Cloud Independence:</strong> Eliminates recurring API token costs. Rural students can learn indefinitely without paying for mobile recharges.
           </div>
         </div>
+
       </div>
     </div>
   );

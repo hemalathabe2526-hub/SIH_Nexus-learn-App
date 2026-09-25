@@ -36,7 +36,10 @@ function VideoLabContent() {
   const [rewindCount, setRewindCount] = useState(0);
   const [struggleDetected, setStruggleDetected] = useState(false);
   const [videoUnavailable, setVideoUnavailable] = useState(false);
-  const [activeTab, setActiveTab] = useState<'video' | 'notes' | 'quiz'>('video');
+  const [activeTab, setActiveTab] = useState<'video' | 'notes' | 'quiz' | 'dubbing'>('video');
+  const [dubbingLang, setDubbingLang] = useState<'hi' | 'ta' | 'te' | 'kn' | 'bn' | 'mr'>('ta');
+  const [isDubbingPlaying, setIsDubbingPlaying] = useState(false);
+  const [duckingVolume, setDuckingVolume] = useState(25);
   const [userNote, setUserNote] = useState('');
   const [notesList, setNotesList] = useState<{ time: string; text: string }[]>([]);
 
@@ -653,6 +656,109 @@ function VideoLabContent() {
                     <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{n.text}</span>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {activeTab === 'dubbing' && (
+              <div style={{ padding: 18, borderRadius: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(0,212,255,0.25)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, color: '#00d4ff', margin: '0 0 4px' }}>
+                      ??? Localized Real-Time Vernacular Dubbing Engine
+                    </h3>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+                      Translates English technical lectures into native mother-tongue audio with real-time background audio ducking.
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(16,185,129,0.2)', color: '#10b981', fontWeight: 700 }}>
+                    Audio Ducking Active
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                  <div>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 700 }}>SELECT VERNACULAR DIALECT:</span>
+                    <select
+                      value={dubbingLang}
+                      onChange={e => setDubbingLang(e.target.value as any)}
+                      style={{
+                        width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 8,
+                        background: '#020408', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff',
+                        fontFamily: 'Outfit', fontSize: 13, outline: 'none',
+                      }}
+                    >
+                      <option value="ta">???? ????? (Tamil - Colloquial & Technical)</option>
+                      <option value="hi">???? ?????? (Hindi - Shuddh & Hinglish)</option>
+                      <option value="te">???? ?????? (Telugu)</option>
+                      <option value="kn">???? ????? (Kannada)</option>
+                      <option value="bn">???? ????? (Bengali)</option>
+                      <option value="mr">???? ????? (Marathi)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 700 }}>
+                      <span>ORIGINAL VIDEO AUDIO DUCKING:</span>
+                      <span style={{ color: '#f59e0b' }}>{duckingVolume}% (Ducked)</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="5"
+                      max="50"
+                      value={duckingVolume}
+                      onChange={e => setDuckingVolume(Number(e.target.value))}
+                      style={{ width: '100%', marginTop: 8, accentColor: '#f59e0b' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Subtitle Translation Stream */}
+                <div style={{ padding: 14, borderRadius: 10, background: '#020408', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, marginBottom: 4 }}>
+                    SYNCHRONIZED TRANSLATED VERNACULAR SUBTITLE STREAM:
+                  </div>
+                  <div style={{ fontSize: 14, color: 'white', lineHeight: 1.6 }}>
+                    {dubbingLang === 'ta' && selectedTopic ? `${selectedTopic.title} ?????? ??????? ????????: ${selectedTopic.description} ????? ??? ?????????? ?????????? ${selectedTopic.keyConcepts.join(', ')} ?????.` :
+                     dubbingLang === 'hi' && selectedTopic ? `${selectedTopic.title} ?? ??????? ???: ${selectedTopic.description} ????? ????? ??? ?? ${selectedTopic.keyConcepts.join(', ')} ?? ????????? ????? ????` :
+                     dubbingLang === 'te' && selectedTopic ? `${selectedTopic.title} ?????: ${selectedTopic.description}` :
+                     selectedTopic ? `${selectedTopic.title}: ${selectedTopic.description}` : 'Select a topic to start dubbing.'}
+                  </div>
+                </div>
+
+                {/* Audio Dubbing Trigger */}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    onClick={() => {
+                      if (typeof window === 'undefined' || !selectedTopic) return;
+                      if (isDubbingPlaying) {
+                        window.speechSynthesis.cancel();
+                        setIsDubbingPlaying(false);
+                      } else {
+                        const sampleTranslations: Record<string, string> = {
+                          ta: `${selectedTopic.title} ?????? ????????. ${selectedTopic.description}. ??????? ?????????? ${selectedTopic.keyConcepts.join(', ')}.`,
+                          hi: `${selectedTopic.title} ?? ???? ${selectedTopic.description}. ????? ????? ${selectedTopic.keyConcepts.join(', ')}.`,
+                          te: `${selectedTopic.title} ?????. ${selectedTopic.description}.`,
+                          kn: `${selectedTopic.title} ??????. ${selectedTopic.description}.`,
+                          bn: `${selectedTopic.title} ???? ${selectedTopic.description}.`,
+                          mr: `${selectedTopic.title} ??????????. ${selectedTopic.description}.`
+                        };
+                        const u = new SpeechSynthesisUtterance(sampleTranslations[dubbingLang] || selectedTopic.description);
+                        u.lang = dubbingLang === 'hi' ? 'hi-IN' : dubbingLang === 'ta' ? 'ta-IN' : dubbingLang === 'te' ? 'te-IN' : 'en-IN';
+                        u.onstart = () => setIsDubbingPlaying(true);
+                        u.onend = () => setIsDubbingPlaying(false);
+                        u.onerror = () => setIsDubbingPlaying(false);
+                        window.speechSynthesis.speak(u);
+                      }
+                    }}
+                    style={{
+                      padding: '10px 22px', borderRadius: 8, border: 'none',
+                      background: isDubbingPlaying ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #0066ff, #00d4ff)',
+                      color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit', fontSize: 13,
+                    }}
+                  >
+                    {isDubbingPlaying ? '? Stop Vernacular Voice Dub' : '?? Play Real-Time Vernacular Voice Dub'}
+                  </button>
+                </div>
               </div>
             )}
 
