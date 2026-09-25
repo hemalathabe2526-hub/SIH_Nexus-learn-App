@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Mic, MicOff, Sparkles, ArrowLeft, CheckCircle2, AlertTriangle, ShieldCheck, HelpCircle, Award, Volume2, BookOpen } from 'lucide-react';
+import AppPermissionModal from '@/components/AppPermissionModal';
+import { getStoredPermission, savePermissionChoice, PermissionChoice, resetPermission } from '@/lib/permissions';
 
 interface VivaQuestion {
   id: string;
@@ -105,27 +107,60 @@ export default function VivaVocePage() {
     return () => clearInterval(interval);
   }, [isListening]);
 
-  const toggleListening = () => {
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [micPermissionChoice, setMicPermissionChoice] = useState<string>('prompt');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setMicPermissionChoice(getStoredPermission('microphone'));
+    }
+  }, []);
+
+  const handleStartListeningWithPermission = () => {
     if (isListening) {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
       setIsListening(false);
+      return;
+    }
+
+    const currentPerm = getStoredPermission('microphone');
+    if (currentPerm === 'prompt') {
+      setShowPermissionModal(true);
+    } else if (currentPerm === 'block') {
+      setIsListening(true);
+      simulateSpokenInput();
     } else {
-      setOralTranscript('');
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-          setIsListening(true);
-        } catch {
-          // If browser restricts, fallback with demo text
-          setIsListening(true);
-          simulateSpokenInput();
-        }
-      } else {
+      startRecognitionActual();
+    }
+  };
+
+  const handlePermissionChoice = (choice: PermissionChoice) => {
+    savePermissionChoice('microphone', choice);
+    setMicPermissionChoice(choice);
+    setShowPermissionModal(false);
+    if (choice === 'block') {
+      setIsListening(true);
+      simulateSpokenInput();
+    } else {
+      startRecognitionActual();
+    }
+  };
+
+  const startRecognitionActual = () => {
+    setOralTranscript('');
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch {
         setIsListening(true);
         simulateSpokenInput();
       }
+    } else {
+      setIsListening(true);
+      simulateSpokenInput();
     }
   };
 
@@ -184,7 +219,32 @@ export default function VivaVocePage() {
           </h1>
         </div>
 
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            onClick={() => {
+              resetPermission('microphone');
+              setMicPermissionChoice('prompt');
+              setShowPermissionModal(true);
+            }}
+            style={{
+              padding: '7px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.06)', color: '#d1d5db', fontSize: 11, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Outfit'
+            }}
+            title="Change microphone permission settings (Allow while using / Allow once / Block)"
+          >
+            <ShieldCheck size={13} color="#10b981" />
+            <span>
+              {micPermissionChoice === 'while_using'
+                ? 'Mic: Allowed'
+                : micPermissionChoice === 'only_this_time'
+                ? 'Mic: This Time'
+                : micPermissionChoice === 'block'
+                ? 'Mic: Blocked'
+                : 'Mic Permissions'}
+            </span>
+          </button>
+
           <Link href="/agent" style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.4)', color: '#c084fc', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <Sparkles size={14} />
             <span>AI Pedagogical Agent</span>
@@ -269,7 +329,7 @@ export default function VivaVocePage() {
 
             {/* Mic Button */}
             <button
-              onClick={toggleListening}
+              onClick={handleStartListeningWithPermission}
               style={{
                 padding: '14px 32px', borderRadius: 50, border: 'none',
                 background: isListening ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #0066ff, #00d4ff)',
@@ -375,6 +435,14 @@ export default function VivaVocePage() {
         </div>
 
       </div>
+
+      {/* In-App Permission Modal with 3 options: Allow while using this app, Allow only this time, Block */}
+      <AppPermissionModal
+        isOpen={showPermissionModal}
+        type="microphone"
+        onChoice={handlePermissionChoice}
+        onClose={() => setShowPermissionModal(false)}
+      />
     </div>
   );
 }

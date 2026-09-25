@@ -2,7 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Box, Camera, CameraOff, Sparkles, ArrowLeft, Eye, Atom, Cpu, Lightbulb, Compass, RotateCw } from 'lucide-react';
+import { Box, Camera, CameraOff, Sparkles, ArrowLeft, Eye, Atom, Cpu, Lightbulb, Compass, RotateCw, ShieldCheck } from 'lucide-react';
+import AppPermissionModal from '@/components/AppPermissionModal';
+import { getStoredPermission, savePermissionChoice, PermissionChoice, resetPermission } from '@/lib/permissions';
 
 export default function WebXRDeskARPage() {
   const [arModel, setArModel] = useState<'optics' | 'bohr' | 'circuit'>('optics');
@@ -12,11 +14,20 @@ export default function WebXRDeskARPage() {
   const [arStatus, setArStatus] = useState('Desk Plane Detected (Horizontal Surface: 0.82m)');
   const [laserPoint, setLaserPoint] = useState<{ x: number; y: number } | null>(null);
 
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [permissionChoice, setPermissionChoice] = useState<string>('prompt');
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Toggle mobile/web camera feed
-  const toggleCamera = async () => {
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPermissionChoice(getStoredPermission('camera'));
+    }
+  }, []);
+
+  // Toggle mobile/web camera feed with 3-option permission check
+  const toggleCamera = () => {
     if (isCameraActive) {
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
@@ -24,17 +35,45 @@ export default function WebXRDeskARPage() {
         videoRef.current.srcObject = null;
       }
       setIsCameraActive(false);
+      return;
+    }
+
+    const currentPerm = getStoredPermission('camera');
+    if (currentPerm === 'prompt') {
+      setShowPermissionModal(true);
+      return;
+    }
+
+    if (currentPerm === 'block') {
+      alert('Camera access is blocked. Running high-fidelity 3D desk projection simulator.');
+      return;
+    }
+
+    startCameraStream();
+  };
+
+  const handlePermissionChoice = (choice: PermissionChoice) => {
+    savePermissionChoice('camera', choice);
+    setPermissionChoice(choice);
+    setShowPermissionModal(false);
+
+    if (choice === 'block') {
+      alert('Camera access blocked. High-fidelity 3D desk projection simulator active.');
     } else {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-        }
-        setIsCameraActive(true);
-      } catch {
-        alert('Camera access unavailable or denied. Running high-fidelity desk projection simulator.');
+      startCameraStream();
+    }
+  };
+
+  const startCameraStream = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
       }
+      setIsCameraActive(true);
+    } catch {
+      alert('Camera access unavailable or restricted by browser. Running high-fidelity desk projection simulator.');
     }
   };
 
@@ -213,7 +252,32 @@ export default function WebXRDeskARPage() {
           </h1>
         </div>
 
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            onClick={() => {
+              resetPermission('camera');
+              setPermissionChoice('prompt');
+              setShowPermissionModal(true);
+            }}
+            style={{
+              padding: '7px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.06)', color: '#d1d5db', fontSize: 11, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Outfit'
+            }}
+            title="Change camera permission settings (Allow while using / Allow once / Block)"
+          >
+            <ShieldCheck size={13} color="#10b981" />
+            <span>
+              {permissionChoice === 'while_using'
+                ? 'Camera: Allowed'
+                : permissionChoice === 'only_this_time'
+                ? 'Camera: This Time'
+                : permissionChoice === 'block'
+                ? 'Camera: Blocked'
+                : 'Camera Permissions'}
+            </span>
+          </button>
+
           <button
             onClick={toggleCamera}
             style={{
@@ -340,6 +404,13 @@ export default function WebXRDeskARPage() {
         </div>
 
       </div>
+
+      <AppPermissionModal
+        isOpen={showPermissionModal}
+        type="camera"
+        onChoice={handlePermissionChoice}
+        onClose={() => setShowPermissionModal(false)}
+      />
     </div>
   );
 }
