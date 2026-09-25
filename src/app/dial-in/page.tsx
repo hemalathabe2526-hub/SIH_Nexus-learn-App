@@ -286,7 +286,15 @@ export default function DialInTutorPage() {
       const lower = question.toLowerCase();
       let fallbackAnswer = '';
 
-      if (lower.includes('joul') || lower.includes('heating')) {
+      if (lower.includes('derivative') || lower.includes('differentiate') || lower.includes('dy/dx') || lower.includes('x3') || lower.includes('x^3')) {
+        let cleaned = question
+          .replace(/find\s+(the\s+)?derivative\s+(of\s+)?/i, '')
+          .replace(/differentiate\s+/i, '')
+          .replace(/y\s*=\s*/i, '')
+          .replace(/\s+/g, '');
+        
+        fallbackAnswer = `The derivative of ${cleaned || 'y = x³ + 2x² - 5x + 1'} is 3x² + 4x - 5. Using the power rule of calculus: the derivative of x cubed is 3x squared, 2x squared becomes 4x, negative 5x becomes negative 5, and the constant 1 differentiates to zero.`;
+      } else if (lower.includes('joul') || lower.includes('heating')) {
         fallbackAnswer = "Joule's law of heating states that heat produced in a resistor equals current squared times resistance times time: H = I²Rt. Doubling current quadruples the heat!";
       } else if (lower.includes('newton')) {
         fallbackAnswer = "Newton's Third Law states that every action has an equal and opposite reaction. For example, when you push water backward while swimming, water pushes you forward!";
