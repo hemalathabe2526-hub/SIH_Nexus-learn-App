@@ -2,7 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Camera, Sparkles, ArrowLeft, Eye, Cpu, Scale, CheckCircle2, AlertCircle, RefreshCw, Box } from 'lucide-react';
+import { Camera, CameraOff, Sparkles, ArrowLeft, Eye, Cpu, Scale, CheckCircle2, AlertCircle, RefreshCw, Box, Upload, Crosshair, Maximize2, ShieldCheck } from 'lucide-react';
+import AppPermissionModal from '@/components/AppPermissionModal';
+import { getStoredPermission, savePermissionChoice, PermissionChoice, resetPermission } from '@/lib/permissions';
 
 interface ParsedComponent {
   id: string;
@@ -35,6 +37,13 @@ export default function SnapAndSimulatePage() {
   const [pipelineStep, setPipelineStep] = useState<string | null>(null);
   const [parsedScene, setParsedScene] = useState<ParsedSceneData | null>(null);
 
+  // Camera & Image Capture State
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [permissionChoice, setPermissionChoice] = useState<string>('prompt');
+  const [capturedImagePreview, setCapturedImagePreview] = useState<string | null>(null);
+  const [isArPassThrough, setIsArPassThrough] = useState(false);
+
   // Dynamic parameters controllable in the spawned 3D simulation
   const [resistorR1, setResistorR1] = useState(10);
   const [resistorR2, setResistorR2] = useState(20);
@@ -46,35 +55,163 @@ export default function SnapAndSimulatePage() {
   const [pulleyMass2, setPulleyMass2] = useState(4.0);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement>(null);
+  const arVideoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [rotationAngle, setRotationAngle] = useState(0);
 
-  // Trigger Gemini Vision parsing
-  const handleParseAndSpawn = async () => {
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPermissionChoice(getStoredPermission('camera'));
+    }
+  }, []);
+
+  // Open live camera with 3-option permission check
+  const handleToggleCamera = () => {
+    if (isCameraActive) {
+      stopCameraStream();
+      return;
+    }
+
+    const currentPerm = getStoredPermission('camera');
+    if (currentPerm === 'prompt') {
+      setShowPermissionModal(true);
+      return;
+    }
+
+    if (currentPerm === 'block') {
+      alert('Camera permission is set to Block. You can upload a photo or reset permissions above.');
+      return;
+    }
+
+    startCameraStream();
+  };
+
+  const handlePermissionChoice = (choice: PermissionChoice) => {
+    savePermissionChoice('camera', choice);
+    setPermissionChoice(choice);
+    setShowPermissionModal(false);
+
+    if (choice === 'block') {
+      alert('Camera access blocked. You can upload a textbook photo or pick sample STEM schematics.');
+    } else {
+      startCameraStream();
+    }
+  };
+
+  const startCameraStream = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+        cameraVideoRef.current.play();
+      }
+      setIsCameraActive(true);
+    } catch {
+      alert('Camera access unavailable. You can upload a textbook photo file instead.');
+    }
+  };
+
+  const stopCameraStream = () => {
+    if (cameraVideoRef.current && cameraVideoRef.current.srcObject) {
+      const stream = cameraVideoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      cameraVideoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  // Toggle AR Pass-Through Mode in 3D Canvas
+  const toggleArPassThrough = async () => {
+    if (isArPassThrough) {
+      if (arVideoRef.current && arVideoRef.current.srcObject) {
+        const stream = arVideoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        arVideoRef.current.srcObject = null;
+      }
+      setIsArPassThrough(false);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+        if (arVideoRef.current) {
+          arVideoRef.current.srcObject = stream;
+          arVideoRef.current.play();
+        }
+        setIsArPassThrough(true);
+      } catch {
+        alert('Camera stream unavailable for AR pass-through.');
+      }
+    }
+  };
+
+  // Capture current video frame and spawn 3D Lab
+  const captureSnapshotAndSimulate = () => {
+    if (!cameraVideoRef.current) return;
+    const v = cameraVideoRef.current;
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = v.videoWidth || 640;
+    offCanvas.height = v.videoHeight || 480;
+    const ctx = offCanvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(v, 0, 0, offCanvas.width, offCanvas.height);
+      const base64 = offCanvas.toDataURL('image/jpeg', 0.85);
+      setCapturedImagePreview(base64);
+      stopCameraStream();
+      handleParseAndSpawn(base64);
+    }
+  };
+
+  // Handle local file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setCapturedImagePreview(base64);
+      handleParseAndSpawn(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Trigger Gemini Vision parsing pipeline
+  const handleParseAndSpawn = async (customImageBase64?: string) => {
     setIsProcessing(true);
     setParsedScene(null);
 
     const steps = [
-      'Ingesting diagram raster array...',
-      'Gemini Vision: Decomposing circuit/optical nodes & schematic topology...',
+      customImageBase64 ? 'Rasterizing captured camera frame (1280x720)...' : 'Ingesting textbook schematic array...',
+      'Gemini Vision: Extracting circuit/optical nodes & schematic topology...',
       'Solving physical differential equations & boundary parameters...',
       'Spawning interactive 3D WebGL physics geometry...'
     ];
 
     for (let i = 0; i < steps.length; i++) {
       setPipelineStep(steps[i]);
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 380));
     }
 
     try {
+      const savedKey = typeof window !== 'undefined' ? localStorage.getItem('NEXUS_GEMINI_KEY') || '' : '';
       const res = await fetch('/api/multimodal-parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ diagramType: selectedPreset.type })
+        body: JSON.stringify({
+          diagramType: selectedPreset.type,
+          imageBase64: customImageBase64 || undefined,
+          customApiKey: savedKey,
+        })
       });
       const data = await res.json();
-      setParsedScene(data.parsedScene);
+      if (data.parsedScene) {
+        setParsedScene(data.parsedScene);
+      }
     } catch {
-      // Fallback
+      // Fallback handled gracefully
     } finally {
       setIsProcessing(false);
       setPipelineStep(null);
@@ -104,24 +241,33 @@ export default function SnapAndSimulatePage() {
       const cx = canvas.width / 2;
       const cy = canvas.height / 2;
 
-      // Draw grid background
-      ctx.strokeStyle = 'rgba(0, 212, 255, 0.08)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < canvas.width; x += 30) {
+      // Draw grid background if AR mode is off
+      if (!isArPassThrough) {
+        ctx.strokeStyle = 'rgba(0, 212, 255, 0.08)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < canvas.width; x += 30) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvas.height);
+          ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += 30) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
+          ctx.stroke();
+        }
+      } else {
+        // Holographic AR Reticle
+        ctx.strokeStyle = 'rgba(0, 212, 255, 0.4)';
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < canvas.height; y += 30) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
+        ctx.arc(cx, cy, 140, 0, Math.PI * 2);
         ctx.stroke();
       }
 
       if (selectedPreset.type === 'circuit') {
-        // Wheatstone Diamond
+        // Wheatstone Diamond Circuit
         const R1 = resistorR1;
         const R2 = resistorR2;
         const R3 = resistorR3;
@@ -136,7 +282,7 @@ export default function SnapAndSimulatePage() {
         const right = { x: cx + 130, y: cy };
 
         // Diamond Wires
-        ctx.strokeStyle = '#00d4ff';
+        ctx.strokeStyle = isArPassThrough ? '#00e5ff' : '#00d4ff';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(left.x, left.y);
@@ -155,128 +301,133 @@ export default function SnapAndSimulatePage() {
         ctx.stroke();
 
         // Galvanometer meter circle
-        ctx.fillStyle = '#0a192f';
+        ctx.fillStyle = isArPassThrough ? 'rgba(10, 25, 47, 0.85)' : '#0a192f';
         ctx.beginPath();
         ctx.arc(cx, cy, 26, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = isBalanced ? '#10b981' : '#ef4444';
+        ctx.lineWidth = 2;
         ctx.stroke();
 
-        ctx.fillStyle = isBalanced ? '#10b981' : '#ef4444';
-        ctx.font = 'bold 11px Outfit, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(isBalanced ? 'Ig = 0 mA' : `Ig=${ig}mA`, cx, cy + 4);
+        // Needle
+        ctx.strokeStyle = isBalanced ? '#10b981' : '#ef4444';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        const deflection = isBalanced ? 0 : (Number(ig) * 12);
+        ctx.lineTo(cx + deflection, cy - 18);
+        ctx.stroke();
 
         // Resistor Labels
-        const drawResistorBox = (x: number, y: number, label: string, val: number) => {
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(x - 30, y - 12, 60, 24);
-          ctx.strokeStyle = '#00d4ff';
-          ctx.lineWidth = 1.5;
-          ctx.strokeRect(x - 30, y - 12, 60, 24);
-          ctx.fillStyle = '#fff';
-          ctx.font = '10px JetBrains Mono';
-          ctx.fillText(`${label}: ${val}Ω`, x, y + 4);
-        };
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px JetBrains Mono';
+        ctx.fillText(`R1 = ${R1}Ω`, left.x + 20, top.y + 35);
+        ctx.fillText(`R2 = ${R2}Ω`, right.x - 70, top.y + 35);
+        ctx.fillText(`R3 = ${R3}Ω`, left.x + 20, bottom.y - 25);
+        ctx.fillText(`R4 = ${R4}Ω`, right.x - 70, bottom.y - 25);
 
-        drawResistorBox((left.x + top.x) / 2, (left.y + top.y) / 2, 'R1', R1);
-        drawResistorBox((top.x + right.x) / 2, (top.y + right.y) / 2, 'R2', R2);
-        drawResistorBox((left.x + bottom.x) / 2, (left.y + bottom.y) / 2, 'R3', R3);
-        drawResistorBox((bottom.x + right.x) / 2, (bottom.y + right.y) / 2, 'R4', R4);
+        // Status text
+        ctx.fillStyle = isBalanced ? '#10b981' : '#f59e0b';
+        ctx.font = 'bold 13px Outfit';
+        ctx.textAlign = 'center';
+        ctx.fillText(
+          isBalanced ? '✓ Balanced Bridge: Null Current Ig = 0.00 mA' : `⚠ Unbalanced: Deflection Ig = ${ig} mA`,
+          cx,
+          bottom.y + 40
+        );
 
       } else if (selectedPreset.type === 'optics') {
-        // Optical Bench
+        // Convex Lens Optical Bench
         const f = lensFocal;
-        const u = -lensObjectDist;
-        const v = (f * u) / (u + f);
-        const m = -v / u;
+        const u = lensObjectDist;
+        const v = (1 / ((1 / f) - (1 / u)));
+        const isReal = v > 0;
 
-        // Optical Axis
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        // Principal Axis
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(40, cy);
         ctx.lineTo(canvas.width - 40, cy);
         ctx.stroke();
 
-        // Convex Lens
+        // Lens Vertical Line
         ctx.strokeStyle = '#00d4ff';
-        ctx.fillStyle = 'rgba(0, 212, 255, 0.15)';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.ellipse(cx, cy, 14, 110, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(cx, cy - 90);
+        ctx.lineTo(cx, cy + 90);
         ctx.stroke();
 
-        // Focal Points F1 & F2
-        const fScale = 4.5;
-        ctx.fillStyle = '#f59e0b';
-        ctx.beginPath();
-        ctx.arc(cx - f * fScale, cy, 4, 0, Math.PI * 2);
-        ctx.arc(cx + f * fScale, cy, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.font = '10px Outfit';
-        ctx.fillText('F1', cx - f * fScale, cy + 18);
-        ctx.fillText('F2', cx + f * fScale, cy + 18);
-
-        // Object Arrow
-        const objX = cx + u * fScale;
-        const objH = 50;
+        // Luminous Object Arrow
+        const objHeight = 45;
+        const objX = cx - u * 4.5;
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(objX, cy);
-        ctx.lineTo(objX, cy - objH);
+        ctx.lineTo(objX, cy - objHeight);
         ctx.stroke();
+        // Arrow head
         ctx.fillStyle = '#10b981';
-        ctx.fillText('Object', objX, cy - objH - 6);
+        ctx.beginPath();
+        ctx.moveTo(objX - 6, cy - objHeight + 10);
+        ctx.lineTo(objX + 6, cy - objHeight + 10);
+        ctx.lineTo(objX, cy - objHeight);
+        ctx.fill();
+
+        // Parallel Ray & Focal Ray
+        const imgX = cx + v * 4.5;
+        const imgHeight = -(v / u) * objHeight;
+
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.5;
+        // Ray 1: Parallel then through focus
+        ctx.beginPath();
+        ctx.moveTo(objX, cy - objHeight);
+        ctx.lineTo(cx, cy - objHeight);
+        ctx.lineTo(imgX, cy - imgHeight);
+        ctx.stroke();
+
+        // Ray 2: Through optical center
+        ctx.strokeStyle = '#ec4899';
+        ctx.beginPath();
+        ctx.moveTo(objX, cy - objHeight);
+        ctx.lineTo(imgX, cy - imgHeight);
+        ctx.stroke();
 
         // Image Arrow
-        const imgX = cx + v * fScale;
-        const imgH = objH * m;
-        ctx.strokeStyle = '#ec4899';
+        ctx.strokeStyle = '#f59e0b';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(imgX, cy);
-        ctx.lineTo(imgX, cy + imgH);
+        ctx.lineTo(imgX, cy - imgHeight);
         ctx.stroke();
-        ctx.fillStyle = '#ec4899';
-        ctx.fillText(`Image (m=${m.toFixed(1)}x)`, imgX, cy + imgH + 16);
 
-        // Light Rays
-        ctx.strokeStyle = 'rgba(255, 255, 0, 0.6)';
-        ctx.lineWidth = 1.5;
-        // Ray 1: Parallel -> Focus
-        ctx.beginPath();
-        ctx.moveTo(objX, cy - objH);
-        ctx.lineTo(cx, cy - objH);
-        ctx.lineTo(imgX, cy + imgH);
-        ctx.stroke();
-        // Ray 2: Center
-        ctx.beginPath();
-        ctx.moveTo(objX, cy - objH);
-        ctx.lineTo(cx, cy);
-        ctx.lineTo(imgX, cy + imgH);
-        ctx.stroke();
+        // Labels
+        ctx.fillStyle = '#fff';
+        ctx.font = '11px Outfit';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Object (u = -${u}cm)`, objX, cy + 20);
+        ctx.fillText(`Image (v = ${v.toFixed(1)}cm)`, imgX, cy + 20);
+        ctx.fillText(`Convex Lens (f = ${f}cm)`, cx, cy - 100);
 
       } else {
-        // Atwood Pulley
+        // Atwood Coupled Pulley
         const m1 = pulleyMass1;
         const m2 = pulleyMass2;
-        const a = (9.8 * (m2 - m1) / (m1 + m2)).toFixed(2);
-        const T = ((2 * m1 * m2 * 9.8) / (m1 + m2)).toFixed(2);
+        const a = ((m2 - m1) * 9.8 / (m1 + m2)).toFixed(2);
+        const T = (2 * m1 * m2 * 9.8 / (m1 + m2)).toFixed(2);
 
         // Pulley Wheel
         ctx.strokeStyle = '#00d4ff';
-        ctx.lineWidth = 4;
-        ctx.fillStyle = '#0a192f';
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(cx, cy - 80, 36, 0, Math.PI * 2);
-        ctx.fill();
         ctx.stroke();
 
-        // String
-        ctx.strokeStyle = '#ffffff';
+        // Ropes
+        ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(cx - 36, cy - 80);
@@ -299,11 +450,11 @@ export default function SnapAndSimulatePage() {
         ctx.fillStyle = '#fff';
         ctx.fillText(`m2=${m2}kg`, cx + 36, cy + 84);
 
-        // Acceleration Vector
+        // Acceleration & Tension Vector
         ctx.fillStyle = '#10b981';
         ctx.font = '12px JetBrains Mono';
-        ctx.fillText(`a = ${a} m/s²`, cx, cy + 140);
-        ctx.fillText(`Tension T = ${T} N`, cx, cy + 160);
+        ctx.fillText(`a = ${a} m/s²`, cx, cy + 130);
+        ctx.fillText(`String Tension T = ${T} N`, cx, cy + 150);
       }
 
       animId = requestAnimationFrame(render);
@@ -311,7 +462,7 @@ export default function SnapAndSimulatePage() {
 
     render();
     return () => cancelAnimationFrame(animId);
-  }, [selectedPreset, resistorR1, resistorR2, resistorR3, resistorR4, lensFocal, lensObjectDist, pulleyMass1, pulleyMass2]);
+  }, [selectedPreset, resistorR1, resistorR2, resistorR3, resistorR4, lensFocal, lensObjectDist, pulleyMass1, pulleyMass2, isArPassThrough]);
 
   return (
     <div style={{ background: 'var(--nexus-void, #020408)', minHeight: '100vh', fontFamily: 'Outfit, sans-serif', color: 'white', display: 'flex', flexDirection: 'column' }}>
@@ -329,112 +480,274 @@ export default function SnapAndSimulatePage() {
           <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
           <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Camera size={18} color="#00d4ff" />
-            <span>Multimodal Snap-and-Simulate (Vision-to-3D Lab)</span>
+            <span>Multimodal Snap-and-Simulate (Vision-to-3D AR/VR Lab)</span>
           </h1>
         </div>
 
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            onClick={() => {
+              resetPermission('camera');
+              setPermissionChoice('prompt');
+              setShowPermissionModal(true);
+            }}
+            style={{
+              padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.06)', color: '#d1d5db', fontSize: 11, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Outfit'
+            }}
+            title="Configure Camera Permissions (Allow while using / Allow once / Block)"
+          >
+            <ShieldCheck size={13} color="#10b981" />
+            <span>Camera: {permissionChoice === 'while_using' ? 'Allowed' : permissionChoice === 'only_this_time' ? 'Once' : permissionChoice === 'block' ? 'Blocked' : 'Settings'}</span>
+          </button>
+
           <Link href="/virtuallab/ar" style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.4)', color: '#c084fc', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <Box size={14} />
-            <span>Launch Desk WebXR AR</span>
+            <span>Project on Desk in WebXR AR</span>
           </Link>
         </div>
       </div>
 
       {/* Main Grid */}
-      <div style={{ flex: 1, padding: 20, display: 'grid', gridTemplateColumns: '340px 1fr 340px', gap: 16, maxWidth: 1700, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ flex: 1, padding: 20, display: 'grid', gridTemplateColumns: '360px 1fr 340px', gap: 16, maxWidth: 1700, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
 
-        {/* LEFT COLUMN: Textbook Diagram Ingestion */}
+        {/* LEFT COLUMN: Camera Capture & Schematic Input */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 16 }}>
           <div>
-            <span style={{ fontSize: 11, color: '#00d4ff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Step 1: Input</span>
-            <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: '4px 0 8px' }}>
-              Textbook Diagram Source
+            <span style={{ fontSize: 11, color: '#00d4ff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Step 1: Ingestion</span>
+            <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: '4px 0 6px' }}>
+              Textbook Camera / Diagram Source
             </h2>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: 0, lineHeight: 1.5 }}>
-              Snap a textbook photo or pick a STEM schematic below. AI parses topological nodes into real-time 3D simulation geometry.
+              Switch on your camera to capture any textbook diagram, or upload a schematic file to spawn into 3D.
             </p>
           </div>
 
-          {/* Preset Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {SAMPLE_PRESETS.map(preset => (
-              <button
-                key={preset.id}
-                onClick={() => setSelectedPreset(preset)}
-                style={{
-                  padding: '12px 14px', borderRadius: 10, textAlign: 'left',
-                  background: selectedPreset.id === preset.id ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.02)',
-                  border: `1px solid ${selectedPreset.id === preset.id ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.06)'}`,
-                  color: selectedPreset.id === preset.id ? '#00d4ff' : 'white',
-                  cursor: 'pointer', fontFamily: 'Outfit', transition: 'all 0.15s',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  {preset.type === 'circuit' && <Cpu size={16} color="#00d4ff" />}
-                  {preset.type === 'optics' && <Eye size={16} color="#f59e0b" />}
-                  {preset.type === 'mechanics' && <Scale size={16} color="#ec4899" />}
-                  <span style={{ fontSize: 13, fontWeight: 700 }}>{preset.label}</span>
+          {/* Live Camera Viewfinder or Camera Trigger Box */}
+          <div style={{
+            borderRadius: 14, background: '#020408', border: '1px solid rgba(0,212,255,0.3)',
+            overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center',
+            minHeight: isCameraActive ? 240 : 180, justifyContent: 'center', padding: isCameraActive ? 0 : 14,
+          }}>
+            {isCameraActive ? (
+              <>
+                <video
+                  ref={cameraVideoRef}
+                  playsInline
+                  autoPlay
+                  muted
+                  style={{ width: '100%', height: 240, objectFit: 'cover' }}
+                />
+
+                {/* Target Frame / Crosshairs */}
+                <div style={{
+                  position: 'absolute', inset: '16px', border: '2px dashed #00d4ff',
+                  borderRadius: 10, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Crosshair size={32} color="#00d4ff" style={{ opacity: 0.6 }} />
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{preset.desc}</div>
-              </button>
-            ))}
+
+                {/* Camera Overlay Controls */}
+                <div style={{
+                  position: 'absolute', bottom: 10, left: 10, right: 10, display: 'flex', gap: 8, justifyContent: 'center'
+                }}>
+                  <button
+                    onClick={captureSnapshotAndSimulate}
+                    disabled={isProcessing}
+                    style={{
+                      padding: '9px 18px', borderRadius: 8, border: 'none',
+                      background: 'linear-gradient(135deg, #10b981, #00d4ff)', color: 'white',
+                      fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
+                      display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 15px rgba(0,212,255,0.4)'
+                    }}
+                  >
+                    <Camera size={15} />
+                    <span>{isProcessing ? 'Decomposing...' : '📸 Snap Diagram & Spawn 3D'}</span>
+                  </button>
+
+                  <button
+                    onClick={stopCameraStream}
+                    style={{
+                      padding: '9px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)',
+                      background: 'rgba(0,0,0,0.6)', color: '#ef4444', fontSize: 12, fontWeight: 700,
+                      cursor: 'pointer', fontFamily: 'Outfit'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {capturedImagePreview ? (
+                  <div style={{ width: '100%', textAlign: 'center' }}>
+                    <img
+                      src={capturedImagePreview}
+                      alt="Captured Diagram"
+                      style={{ width: '100%', maxHeight: 110, objectFit: 'cover', borderRadius: 8, marginBottom: 8, border: '1px solid #10b981' }}
+                    />
+                    <div style={{ fontSize: 11, color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                      <CheckCircle2 size={13} color="#10b981" />
+                      <span>Textbook Photo Snapped & Decomposed</span>
+                    </div>
+                  </div>
+                ) : (
+                  <Camera size={34} color="#00d4ff" style={{ margin: '0 auto 8px', display: 'block' }} />
+                )}
+
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginTop: 4 }}>Live Camera / Textbook Snap</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>Capacitor & Web Camera API ready</div>
+
+                {/* Primary Action Buttons */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 12, width: '100%' }}>
+                  <button
+                    onClick={handleToggleCamera}
+                    style={{
+                      flex: 1, padding: '9px 12px', borderRadius: 8, border: 'none',
+                      background: 'linear-gradient(135deg, #0066ff, #00d4ff)', color: 'white',
+                      fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    }}
+                  >
+                    <Camera size={14} />
+                    <span>Switch On Camera</span>
+                  </button>
+
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      padding: '9px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)',
+                      background: 'rgba(255,255,255,0.06)', color: '#d1d5db',
+                      fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    }}
+                  >
+                    <Upload size={14} />
+                    <span>Upload File</span>
+                  </button>
+                </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                />
+              </>
+            )}
           </div>
 
-          {/* Simulated Mobile Camera Snap */}
-          <div style={{ padding: 14, borderRadius: 12, background: 'rgba(0,0,0,0.4)', border: '1px dashed rgba(0,212,255,0.3)', textAlign: 'center' }}>
-            <Camera size={32} color="#00d4ff" style={{ margin: '0 auto 8px', display: 'block' }} />
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>Live Camera / Photo Upload</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>Capacitor & Web Camera API ready</div>
-            <button
-              onClick={handleParseAndSpawn}
-              disabled={isProcessing}
-              style={{
-                marginTop: 10, padding: '8px 16px', borderRadius: 8, border: 'none',
-                background: 'linear-gradient(135deg, #0066ff, #00d4ff)', color: 'white',
-                fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-              }}
-            >
-              <RefreshCw size={13} className={isProcessing ? 'animate-spin' : ''} />
-              <span>{isProcessing ? 'Decomposing Diagram...' : 'Snap Diagram & Simulate'}</span>
-            </button>
-          </div>
-
-          {/* Pipeline Status */}
+          {/* Pipeline Status Progress */}
           {pipelineStep && (
             <div style={{ padding: 10, borderRadius: 8, background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', fontSize: 11, color: '#00d4ff', fontFamily: 'JetBrains Mono' }}>
-              {pipelineStep}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <RefreshCw size={12} className="animate-spin" />
+                <span>{pipelineStep}</span>
+              </div>
             </div>
           )}
+
+          {/* Presets Selector */}
+          <div>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 700, textTransform: 'uppercase' }}>Or Select STEM Schematic Preset:</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              {SAMPLE_PRESETS.map(preset => (
+                <button
+                  key={preset.id}
+                  onClick={() => {
+                    setSelectedPreset(preset);
+                    setCapturedImagePreview(null);
+                  }}
+                  style={{
+                    padding: '10px 12px', borderRadius: 10, textAlign: 'left',
+                    background: selectedPreset.id === preset.id ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${selectedPreset.id === preset.id ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                    color: selectedPreset.id === preset.id ? '#00d4ff' : 'white',
+                    cursor: 'pointer', fontFamily: 'Outfit', transition: 'all 0.15s',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                    {preset.type === 'circuit' && <Cpu size={15} color="#00d4ff" />}
+                    {preset.type === 'optics' && <Eye size={15} color="#f59e0b" />}
+                    {preset.type === 'mechanics' && <Scale size={15} color="#ec4899" />}
+                    <span style={{ fontSize: 12, fontWeight: 700 }}>{preset.label}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{preset.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* MIDDLE COLUMN: Interactive 3D WebGL / Canvas Simulation */}
+        {/* MIDDLE COLUMN: Interactive 3D WebGL / Canvas Simulation & AR Pass-Through */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
             <div>
-              <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Step 2: Live 3D Scene</span>
+              <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Step 2: Live 3D / AR Simulation</span>
               <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 17, color: '#00d4ff', margin: '2px 0 0' }}>
-                {selectedPreset.label} — Live Interactive Canvas
+                {selectedPreset.label}
               </h2>
             </div>
-            <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 8, background: 'rgba(16,185,129,0.15)', color: '#10b981', fontWeight: 700 }}>
-              60 FPS WebGL Engine
-            </span>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              {/* AR Pass-Through Toggle */}
+              <button
+                onClick={toggleArPassThrough}
+                style={{
+                  padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(0,212,255,0.3)',
+                  background: isArPassThrough ? 'rgba(16,185,129,0.2)' : 'rgba(0,212,255,0.1)',
+                  color: isArPassThrough ? '#10b981' : '#00d4ff', fontSize: 11, fontWeight: 700,
+                  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Outfit'
+                }}
+              >
+                {isArPassThrough ? <CameraOff size={13} /> : <Camera size={13} />}
+                <span>{isArPassThrough ? 'Disable AR Desk Pass-Through' : 'View in AR Room / Desk'}</span>
+              </button>
+
+              <Link
+                href="/virtuallab/ar"
+                style={{
+                  padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(168,85,247,0.4)',
+                  background: 'rgba(168,85,247,0.15)', color: '#c084fc', textDecoration: 'none',
+                  fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6
+                }}
+              >
+                <Maximize2 size={13} />
+                <span>WebXR Full AR</span>
+              </Link>
+            </div>
           </div>
 
-          {/* Canvas Box */}
-          <div style={{ flex: 1, position: 'relative', minHeight: 440, background: '#020408', borderRadius: 12, border: '1px solid rgba(0,212,255,0.25)', overflow: 'hidden' }}>
+          {/* Canvas Box with Optional AR Camera Pass-Through */}
+          <div style={{
+            flex: 1, position: 'relative', minHeight: 460, borderRadius: 12,
+            border: '1px solid rgba(0,212,255,0.25)', overflow: 'hidden',
+            background: isArPassThrough ? '#000' : '#020408'
+          }}>
+            {/* Live Camera Feed behind 3D Canvas if AR Mode is on */}
+            <video
+              ref={arVideoRef}
+              playsInline
+              muted
+              style={{
+                position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+                opacity: isArPassThrough ? 0.9 : 0, transition: 'opacity 0.3s ease',
+              }}
+            />
+
+            {/* 3D Physics Canvas */}
             <canvas
               ref={canvasRef}
               width={700}
-              height={440}
-              style={{ width: '100%', height: '100%', display: 'block' }}
+              height={460}
+              style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', display: 'block' }}
             />
 
-            {/* In-Canvas Overlay Badge */}
-            <div style={{ position: 'absolute', bottom: 12, left: 12, padding: '6px 12px', borderRadius: 8, background: 'rgba(2,4,8,0.85)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
-              Rotational Viewport: {(rotationAngle * 57.3 % 360).toFixed(0)}° • 3D Physics Synced
+            {/* In-Canvas Telemetry Overlay */}
+            <div style={{ position: 'absolute', bottom: 12, left: 12, zIndex: 20, padding: '6px 12px', borderRadius: 8, background: 'rgba(2,4,8,0.85)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
+              {isArPassThrough ? 'AR WebXR Desk Superimposition: ACTIVE' : 'Rotational Viewport: 3D Physics Synced'} • 60 FPS
             </div>
           </div>
         </div>
@@ -557,6 +870,14 @@ export default function SnapAndSimulatePage() {
         </div>
 
       </div>
+
+      {/* Permission Modal */}
+      <AppPermissionModal
+        isOpen={showPermissionModal}
+        type="camera"
+        onChoice={handlePermissionChoice}
+        onClose={() => setShowPermissionModal(false)}
+      />
     </div>
   );
 }

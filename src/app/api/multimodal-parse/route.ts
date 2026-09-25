@@ -73,35 +73,39 @@ export async function POST(req: NextRequest) {
     const targetType = diagramType || 'circuit';
 
     if (apiKey && apiKey.length >= 10 && imageBase64) {
-      try {
-        const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
-        const prompt = 'Analyze this uploaded textbook STEM diagram. Extract physical components into JSON matching: { type, title, equation, components, calculatedValues }';
-        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+      const visionModels = ['gemini-flash-latest', 'gemini-pro-latest', 'gemini-2.5-flash-lite'];
+      const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+      const prompt = 'Analyze this uploaded textbook STEM diagram. Extract physical components into JSON matching: { type: "circuit"|"optics"|"mechanics", title: string, equation: string, components: Array<{id: string, type: string, value?: number, unit?: string}>, calculatedValues: Record<string, string> }';
 
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(10000),
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: prompt },
-                { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
-              ]
-            }],
-            generationConfig: { responseMimeType: 'application/json' }
-          })
-        });
+      for (const model of visionModels) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(8000),
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: prompt },
+                  { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
+                ]
+              }],
+              generationConfig: { responseMimeType: 'application/json' }
+            })
+          });
 
-        if (response.ok) {
-          const data = await response.json();
-          const parsedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (parsedText) {
-            const parsedJson = JSON.parse(parsedText);
-            return NextResponse.json({ success: true, parsedScene: parsedJson, source: 'gemini-vision' });
+          if (response.ok) {
+            const data = await response.json();
+            const parsedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (parsedText) {
+              const cleanStr = parsedText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
+              const parsedJson = JSON.parse(cleanStr);
+              return NextResponse.json({ success: true, parsedScene: parsedJson, source: `gemini-vision-${model}` });
+            }
           }
-        }
-      } catch (err) {}
+        } catch {}
+      }
     }
 
     const preset = fallbackPresets[targetType] || fallbackPresets.circuit;
