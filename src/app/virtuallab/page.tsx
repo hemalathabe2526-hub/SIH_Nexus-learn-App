@@ -209,7 +209,24 @@ export default function VirtualLabPage() {
 
         {/* LEFT: Experiment Selection */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderRadius: 18, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 14 }}>
-          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.6)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: 1 }}>
+          {/* Snap-and-Simulate Shortcut */}
+          <Link
+            href="/virtuallab/snap"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12,
+              background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.18), rgba(16, 185, 129, 0.18))',
+              border: '1px solid rgba(0, 212, 255, 0.4)', textDecoration: 'none', color: 'white',
+              boxShadow: '0 4px 15px rgba(0, 212, 255, 0.12)', transition: 'all 0.2s',
+            }}
+          >
+            <span style={{ fontSize: 20 }}>📸</span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff' }}>Snap Diagram → 3D Lab</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>Camera / Upload photo to spawn 3D AR →</div>
+            </div>
+          </Link>
+
+          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.6)', margin: '4px 0 4px', textTransform: 'uppercase', letterSpacing: 1 }}>
             Experiments ({filteredLabs.length})
           </h2>
 

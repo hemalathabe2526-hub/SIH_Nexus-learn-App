@@ -10,10 +10,37 @@ export async function POST(req: NextRequest) {
       process.env.GEMINI_API_KEY;
 
     const fallbackPresets: Record<string, any> = {
+      kinematics_projectile: {
+        type: 'kinematics_projectile',
+        title: '1D Vertical Motion & Kinematics Trajectory (Peak at Rest v = 0)',
+        equation: 'y(t) = v₀·t − ½·g·t²  |  v(t) = v₀ − g·t  |  a(t) = −g',
+        components: [
+          { id: 'STAGE', type: 'launch_platform', x: 0, y: 0, z: 0, status: 'ground_datum' },
+          { id: 'PROJECTILE', type: 'spherical_mass', mass: 1.0, unit: 'kg', x: 0, y: 0, z: 0 },
+          { id: 'GRAVITY_FIELD', type: 'gravitational_vector', value: -9.8, unit: 'm/s²', direction: 'downward' },
+          { id: 'VELOCITY_VECTOR', type: 'instantaneous_velocity', value: 25.0, unit: 'm/s', direction: 'vertical' },
+          { id: 'APEX_SENSOR', type: 'peak_rest_detector', value: 0.0, unit: 'm/s', status: 'instantaneously_at_rest' },
+          { id: 'POSITION_CURVE', type: 'parabolic_plot', equation: 'y = v₀t - 0.5gt²' },
+          { id: 'ACCEL_CURVE', type: 'constant_accel_plot', equation: 'a = -g = -9.8 m/s²' },
+        ],
+        calculatedValues: {
+          initialVelocity: '25.0 m/s [Upward]',
+          gravitationalAcceleration: '-9.80 m/s² [Constant Downward]',
+          peakHeight: '31.89 m',
+          flightTimeTotal: '5.10 s',
+          peakVelocity: '0.00 m/s (Instantaneously at rest)',
+          statusAtApex: 'Velocity is 0 m/s at peak, but acceleration remains -9.8 m/s² downwards'
+        },
+        parameters: {
+          initialVelocity: 25,
+          gravity: 9.8,
+          mass: 1.0
+        }
+      },
       circuit: {
         type: 'circuit',
         title: 'Wheatstone Bridge Resistor Network',
-        equation: 'R1 / R2 = R3 / R4 => Balanced Condition',
+        equation: 'R1 / R2 = R3 / R4 => Balanced Null Deflection',
         components: [
           { id: 'R1', type: 'resistor', value: 10, unit: 'Ω', x: -2, y: 1.2, z: 0, status: 'active' },
           { id: 'R2', type: 'resistor', value: 20, unit: 'Ω', x: 2, y: 1.2, z: 0, status: 'active' },
@@ -63,19 +90,56 @@ export async function POST(req: NextRequest) {
           { id: 'ROPE', type: 'inextensible_string', tension: 26.13, unit: 'N' }
         ],
         calculatedValues: {
-          acceleration: '3.27 m/s?',
+          acceleration: '3.27 m/s²',
           stringTension: '26.13 N',
           netDirection: 'Clockwise downward on Mass 2'
+        }
+      },
+      pendulum: {
+        type: 'pendulum',
+        title: 'Simple Harmonic Motion Pendulum & Energy Field',
+        equation: 'T = 2π√(L/g)  |  E = ½ m v² + m g h',
+        components: [
+          { id: 'PIVOT', type: 'fixed_ceiling_pivot', x: 0, y: 3.0, z: 0 },
+          { id: 'ROD', type: 'light_string', length: 2.0, unit: 'm' },
+          { id: 'BOB', type: 'spherical_bob', mass: 1.5, unit: 'kg' },
+        ],
+        calculatedValues: {
+          oscillationPeriod: '2.84 s',
+          naturalFrequency: '0.35 Hz',
+          gravitationalConstant: '9.80 m/s²',
+          energyConservation: 'Total Mechanical Energy E = Constant'
         }
       }
     };
 
-    const targetType = diagramType || 'circuit';
-
     if (apiKey && apiKey.length >= 10 && imageBase64) {
       const visionModels = ['gemini-flash-latest', 'gemini-pro-latest', 'gemini-2.5-flash-lite'];
       const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-      const prompt = 'Analyze this uploaded textbook STEM diagram. Extract physical components into JSON matching: { type: "circuit"|"optics"|"mechanics", title: string, equation: string, components: Array<{id: string, type: string, value?: number, unit?: string}>, calculatedValues: Record<string, string> }';
+      const prompt = `Analyze this textbook STEM diagram or photo with scientific precision.
+1. Determine the experiment category:
+   - "kinematics_projectile": if it shows kinematics, vertical projectile throw, ball thrown upward, trajectories, free fall, graphs of acceleration a(t) or position x(t)/y(t), velocity v(t), or at peak flight ball is at rest (v=0).
+   - "circuit": if it shows resistors, bridge circuits, batteries, capacitors, inductors, voltmeters, galvanometers.
+   - "optics": if it shows lenses, mirrors, light rays, focal points, optical benches.
+   - "mechanics": if it shows pulleys, masses, tension, inclined planes, Atwood machines.
+   - "pendulum": if it shows a suspended bob, string, harmonic oscillation.
+2. Return JSON ONLY with this exact schema:
+{
+  "type": "kinematics_projectile" | "circuit" | "optics" | "mechanics" | "pendulum",
+  "title": "<Concise descriptive title of experiment>",
+  "equation": "<Governing physics equation>",
+  "components": [
+    { "id": "<id>", "type": "<type>", "value": 0, "unit": "<unit>", "x": 0, "y": 0, "z": 0, "status": "<status>" }
+  ],
+  "calculatedValues": {
+    "<key>": "<string value with units>"
+  },
+  "parameters": {
+    "initialVelocity": 25,
+    "gravity": 9.8,
+    "mass": 1.0
+  }
+}`;
 
       for (const model of visionModels) {
         try {
@@ -101,6 +165,21 @@ export async function POST(req: NextRequest) {
             if (parsedText) {
               const cleanStr = parsedText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
               const parsedJson = JSON.parse(cleanStr);
+              // Normalize type to supported list
+              const t = parsedJson.type || '';
+              if (t.includes('kinematic') || t.includes('projectile') || t.includes('motion') || t.includes('fall') || t.includes('velocity')) {
+                parsedJson.type = 'kinematics_projectile';
+              } else if (t.includes('opt') || t.includes('lens') || t.includes('ray')) {
+                parsedJson.type = 'optics';
+              } else if (t.includes('pulley') || t.includes('atwood') || t.includes('mechanic')) {
+                parsedJson.type = 'mechanics';
+              } else if (t.includes('pendulum') || t.includes('harmonic')) {
+                parsedJson.type = 'pendulum';
+              } else if (t.includes('circuit') || t.includes('resistor') || t.includes('bridge')) {
+                parsedJson.type = 'circuit';
+              } else {
+                parsedJson.type = 'kinematics_projectile';
+              }
               return NextResponse.json({ success: true, parsedScene: parsedJson, source: `gemini-vision-${model}` });
             }
           }
@@ -108,7 +187,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const preset = fallbackPresets[targetType] || fallbackPresets.circuit;
+    // Smart fallback: If diagramType was explicitly requested, use that.
+    // If an image was uploaded without an explicit diagramType, default to kinematics_projectile (matching textbook motion diagrams).
+    const targetType = diagramType || (imageBase64 ? 'kinematics_projectile' : 'kinematics_projectile');
+    const preset = fallbackPresets[targetType] || fallbackPresets.kinematics_projectile;
+
     return NextResponse.json({
       success: true,
       parsedScene: preset,
