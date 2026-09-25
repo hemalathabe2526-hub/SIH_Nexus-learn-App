@@ -637,6 +637,38 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Earned Verifiable Badges Showcase */}
+            <div style={{ padding: 20, borderRadius: 18, background: 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(0,212,255,0.08))', border: '1px solid rgba(245,158,11,0.3)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 15, margin: 0, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>🏆</span>
+                  <span>Earned W3C Badges</span>
+                </h3>
+                <Link href="/credentials" style={{ fontSize: 11, color: '#00d4ff', textDecoration: 'none', fontWeight: 700 }}>
+                  View All & Share →
+                </Link>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                {[
+                  { id: 'MATH-003', name: 'Calculus', tier: 'Gold', score: '87%', color: '#f59e0b', icon: '📐' },
+                  { id: 'CS-007', name: 'DSA & Graphs', tier: 'Platinum', score: '91%', color: '#00d4ff', icon: '💻' },
+                  { id: 'CHEM-002', name: 'Kinetics', tier: 'Diamond', score: '96%', color: '#10b981', icon: '🧪' },
+                  { id: 'PHYS-005', name: 'Kinematics', tier: 'Master', score: '94%', color: '#8b5cf6', icon: '🚀' },
+                ].map(b => (
+                  <Link key={b.id} href={`/credentials?id=${b.id}`} style={{ textDecoration: 'none' }}>
+                    <div style={{
+                      padding: '10px 8px', borderRadius: 12, background: 'rgba(0,0,0,0.4)',
+                      border: `1px solid ${b.color}50`, textAlign: 'center', transition: 'all 0.2s',
+                    }}>
+                      <div style={{ fontSize: 18, marginBottom: 2 }}>{b.icon}</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</div>
+                      <div style={{ fontSize: 10, color: b.color, fontWeight: 800 }}>{b.score} • {b.tier}</div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
             {/* Quick Links Grid */}
             <div style={{ padding: 20, borderRadius: 18, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 15, marginBottom: 14, color: '#00d4ff' }}>
