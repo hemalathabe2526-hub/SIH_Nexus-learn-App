@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
+import { Volume2, Globe, Play, Square } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getStoredSession } from '@/lib/authStore';
 import { TOPIC_QUIZZES, getCombinedSyllabus, type SyllabusTopic, type QuizQuestion } from '@/lib/syllabusData';
@@ -663,8 +664,9 @@ function VideoLabContent() {
               <div style={{ padding: 18, borderRadius: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(0,212,255,0.25)', display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, color: '#00d4ff', margin: '0 0 4px' }}>
-                      ??? Localized Real-Time Vernacular Dubbing Engine
+                    <h3 style={{ fontSize: 16, fontWeight: 700, color: '#00d4ff', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Volume2 size={18} />
+                      <span>Localized Real-Time Vernacular Dubbing Engine</span>
                     </h3>
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
                       Translates English technical lectures into native mother-tongue audio with real-time background audio ducking.
@@ -687,12 +689,12 @@ function VideoLabContent() {
                         fontFamily: 'Outfit', fontSize: 13, outline: 'none',
                       }}
                     >
-                      <option value="ta">???? ????? (Tamil - Colloquial & Technical)</option>
-                      <option value="hi">???? ?????? (Hindi - Shuddh & Hinglish)</option>
-                      <option value="te">???? ?????? (Telugu)</option>
-                      <option value="kn">???? ????? (Kannada)</option>
-                      <option value="bn">???? ????? (Bengali)</option>
-                      <option value="mr">???? ????? (Marathi)</option>
+                      <option value="ta">தமிழ் (Tamil - Colloquial & Technical)</option>
+                      <option value="hi">हिन्दी (Hindi - Shuddh & Hinglish)</option>
+                      <option value="te">తెలుగు (Telugu)</option>
+                      <option value="kn">ಕನ್ನಡ (Kannada)</option>
+                      <option value="bn">বাংলা (Bengali)</option>
+                      <option value="mr">मराठी (Marathi)</option>
                     </select>
                   </div>
 
@@ -718,9 +720,9 @@ function VideoLabContent() {
                     SYNCHRONIZED TRANSLATED VERNACULAR SUBTITLE STREAM:
                   </div>
                   <div style={{ fontSize: 14, color: 'white', lineHeight: 1.6 }}>
-                    {dubbingLang === 'ta' && selectedTopic ? `${selectedTopic.title} ?????? ??????? ????????: ${selectedTopic.description} ????? ??? ?????????? ?????????? ${selectedTopic.keyConcepts.join(', ')} ?????.` :
-                     dubbingLang === 'hi' && selectedTopic ? `${selectedTopic.title} ?? ??????? ???: ${selectedTopic.description} ????? ????? ??? ?? ${selectedTopic.keyConcepts.join(', ')} ?? ????????? ????? ????` :
-                     dubbingLang === 'te' && selectedTopic ? `${selectedTopic.title} ?????: ${selectedTopic.description}` :
+                    {dubbingLang === 'ta' && selectedTopic ? `${selectedTopic.title} விளக்கம்: ${selectedTopic.description} — முக்கிய கருத்துக்கள்: ${selectedTopic.keyConcepts.join(', ')}` :
+                     dubbingLang === 'hi' && selectedTopic ? `${selectedTopic.title} विवरण: ${selectedTopic.description} — मुख्य अवधारणाएं: ${selectedTopic.keyConcepts.join(', ')}` :
+                     dubbingLang === 'te' && selectedTopic ? `${selectedTopic.title} వివరణ: ${selectedTopic.description}` :
                      selectedTopic ? `${selectedTopic.title}: ${selectedTopic.description}` : 'Select a topic to start dubbing.'}
                   </div>
                 </div>
@@ -735,12 +737,12 @@ function VideoLabContent() {
                         setIsDubbingPlaying(false);
                       } else {
                         const sampleTranslations: Record<string, string> = {
-                          ta: `${selectedTopic.title} ?????? ????????. ${selectedTopic.description}. ??????? ?????????? ${selectedTopic.keyConcepts.join(', ')}.`,
-                          hi: `${selectedTopic.title} ?? ???? ${selectedTopic.description}. ????? ????? ${selectedTopic.keyConcepts.join(', ')}.`,
-                          te: `${selectedTopic.title} ?????. ${selectedTopic.description}.`,
-                          kn: `${selectedTopic.title} ??????. ${selectedTopic.description}.`,
-                          bn: `${selectedTopic.title} ???? ${selectedTopic.description}.`,
-                          mr: `${selectedTopic.title} ??????????. ${selectedTopic.description}.`
+                          ta: `${selectedTopic.title} பற்றிய விளக்கம்: ${selectedTopic.description}. முக்கிய கருத்துக்கள்: ${selectedTopic.keyConcepts.join(', ')}.`,
+                          hi: `${selectedTopic.title} का सरल विवरण: ${selectedTopic.description}। मुख्य अवधारणाएं: ${selectedTopic.keyConcepts.join(', ')}।`,
+                          te: `${selectedTopic.title} వివరణ: ${selectedTopic.description}. ముఖ్య భావనలు: ${selectedTopic.keyConcepts.join(', ')}.`,
+                          kn: `${selectedTopic.title} ವಿವರಣೆ: ${selectedTopic.description}. ಮುಖ್ಯ ಪರಿಕಲ್ಪನೆಗಳು: ${selectedTopic.keyConcepts.join(', ')}.`,
+                          bn: `${selectedTopic.title} সারসংক্ষেপ: ${selectedTopic.description}। মূল ধারণা: ${selectedTopic.keyConcepts.join(', ')}।`,
+                          mr: `${selectedTopic.title} स्पष्टीकरण: ${selectedTopic.description}. मुख्य संकल्पना: ${selectedTopic.keyConcepts.join(', ')}.`
                         };
                         const u = new SpeechSynthesisUtterance(sampleTranslations[dubbingLang] || selectedTopic.description);
                         u.lang = dubbingLang === 'hi' ? 'hi-IN' : dubbingLang === 'ta' ? 'ta-IN' : dubbingLang === 'te' ? 'te-IN' : 'en-IN';
@@ -754,9 +756,11 @@ function VideoLabContent() {
                       padding: '10px 22px', borderRadius: 8, border: 'none',
                       background: isDubbingPlaying ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #0066ff, #00d4ff)',
                       color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit', fontSize: 13,
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
                     }}
                   >
-                    {isDubbingPlaying ? '? Stop Vernacular Voice Dub' : '?? Play Real-Time Vernacular Voice Dub'}
+                    {isDubbingPlaying ? <Square size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+                    <span>{isDubbingPlaying ? 'Stop Vernacular Voice Dub' : 'Play Real-Time Vernacular Voice Dub'}</span>
                   </button>
                 </div>
               </div>

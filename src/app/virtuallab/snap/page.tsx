@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { Camera, Sparkles, ArrowLeft, Eye, Cpu, Scale, CheckCircle2, AlertCircle, RefreshCw, Box } from 'lucide-react';
 
 interface ParsedComponent {
   id: string;
@@ -22,10 +23,10 @@ interface ParsedSceneData {
   calculatedValues: Record<string, string>;
 }
 
-const SAMPLE_PRESETS: { id: string; label: string; type: 'circuit' | 'optics' | 'mechanics'; desc: string; icon: string }[] = [
-  { id: 'circuit_wheatstone', label: 'Wheatstone Bridge Circuit', type: 'circuit', desc: 'Resistor bridge with null deflection galvanometer', icon: '?' },
-  { id: 'optics_lens', label: 'Convex Lens Optical Bench', type: 'optics', desc: 'Ray optics with real, inverted image formation', icon: '??' },
-  { id: 'mechanics_pulley', label: 'Atwood Coupled Pulley', type: 'mechanics', desc: 'Dual-mass acceleration and tension equilibrium', icon: '??' },
+const SAMPLE_PRESETS: { id: string; label: string; type: 'circuit' | 'optics' | 'mechanics'; desc: string }[] = [
+  { id: 'circuit_wheatstone', label: 'Wheatstone Bridge Circuit', type: 'circuit', desc: 'Resistor bridge with null deflection galvanometer' },
+  { id: 'optics_lens', label: 'Convex Lens Optical Bench', type: 'optics', desc: 'Ray optics with real, inverted image formation' },
+  { id: 'mechanics_pulley', label: 'Atwood Coupled Pulley', type: 'mechanics', desc: 'Dual-mass acceleration and tension equilibrium' },
 ];
 
 export default function SnapAndSimulatePage() {
@@ -53,10 +54,10 @@ export default function SnapAndSimulatePage() {
     setParsedScene(null);
 
     const steps = [
-      '?? Ingesting diagram raster array...',
-      '?? Gemini Vision: Decomposing circuit/optical nodes & schematic topology...',
-      '?? Solving physical differential equations & boundary parameters...',
-      '? Spawning interactive 3D WebGL physics geometry...'
+      'Ingesting diagram raster array...',
+      'Gemini Vision: Decomposing circuit/optical nodes & schematic topology...',
+      'Solving physical differential equations & boundary parameters...',
+      'Spawning interactive 3D WebGL physics geometry...'
     ];
 
     for (let i = 0; i < steps.length; i++) {
@@ -169,13 +170,13 @@ export default function SnapAndSimulatePage() {
         // Resistor Labels
         const drawResistorBox = (x: number, y: number, label: string, val: number) => {
           ctx.fillStyle = '#0f172a';
-          ctx.fillRect(x - 28, y - 12, 56, 24);
+          ctx.fillRect(x - 30, y - 12, 60, 24);
           ctx.strokeStyle = '#00d4ff';
           ctx.lineWidth = 1.5;
-          ctx.strokeRect(x - 28, y - 12, 56, 24);
+          ctx.strokeRect(x - 30, y - 12, 60, 24);
           ctx.fillStyle = '#fff';
           ctx.font = '10px JetBrains Mono';
-          ctx.fillText(`${label}: ${val}?`, x, y + 4);
+          ctx.fillText(`${label}: ${val}Ω`, x, y + 4);
         };
 
         drawResistorBox((left.x + top.x) / 2, (left.y + top.y) / 2, 'R1', R1);
@@ -301,7 +302,7 @@ export default function SnapAndSimulatePage() {
         // Acceleration Vector
         ctx.fillStyle = '#10b981';
         ctx.font = '12px JetBrains Mono';
-        ctx.fillText(`a = ${a} m/s?`, cx, cy + 140);
+        ctx.fillText(`a = ${a} m/s²`, cx, cy + 140);
         ctx.fillText(`Tension T = ${T} N`, cx, cy + 160);
       }
 
@@ -321,19 +322,21 @@ export default function SnapAndSimulatePage() {
         backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, flexWrap: 'wrap', gap: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/virtuallab" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700 }}>
-            ? Back to Virtual Labs
+          <Link href="/virtuallab" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ArrowLeft size={16} />
+            <span>Back to Virtual Labs</span>
           </Link>
           <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
           <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>??</span>
-            <span>Multimodal Snap-and-Simulate (Vision-to-Three.js)</span>
+            <Camera size={18} color="#00d4ff" />
+            <span>Multimodal Snap-and-Simulate (Vision-to-3D Lab)</span>
           </h1>
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
-          <Link href="/virtuallab/ar" style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.4)', color: '#c084fc', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>
-            ?? Launch WebXR Desk AR ?
+          <Link href="/virtuallab/ar" style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.4)', color: '#c084fc', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Box size={14} />
+            <span>Launch Desk WebXR AR</span>
           </Link>
         </div>
       </div>
@@ -349,7 +352,7 @@ export default function SnapAndSimulatePage() {
               Textbook Diagram Source
             </h2>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: 0, lineHeight: 1.5 }}>
-              Snap a textbook photo or pick a STEM schematic below. Gemini Vision parses topological nodes into real-time 3D simulation geometry.
+              Snap a textbook photo or pick a STEM schematic below. AI parses topological nodes into real-time 3D simulation geometry.
             </p>
           </div>
 
@@ -368,7 +371,9 @@ export default function SnapAndSimulatePage() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 18 }}>{preset.icon}</span>
+                  {preset.type === 'circuit' && <Cpu size={16} color="#00d4ff" />}
+                  {preset.type === 'optics' && <Eye size={16} color="#f59e0b" />}
+                  {preset.type === 'mechanics' && <Scale size={16} color="#ec4899" />}
                   <span style={{ fontSize: 13, fontWeight: 700 }}>{preset.label}</span>
                 </div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{preset.desc}</div>
@@ -378,9 +383,9 @@ export default function SnapAndSimulatePage() {
 
           {/* Simulated Mobile Camera Snap */}
           <div style={{ padding: 14, borderRadius: 12, background: 'rgba(0,0,0,0.4)', border: '1px dashed rgba(0,212,255,0.3)', textAlign: 'center' }}>
-            <span style={{ fontSize: 28, display: 'block', marginBottom: 6 }}>??</span>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>Live Mobile Camera Feed</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>Capacitor Camera plugin ready</div>
+            <Camera size={32} color="#00d4ff" style={{ margin: '0 auto 8px', display: 'block' }} />
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>Live Camera / Photo Upload</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>Capacitor & Web Camera API ready</div>
             <button
               onClick={handleParseAndSpawn}
               disabled={isProcessing}
@@ -388,9 +393,11 @@ export default function SnapAndSimulatePage() {
                 marginTop: 10, padding: '8px 16px', borderRadius: 8, border: 'none',
                 background: 'linear-gradient(135deg, #0066ff, #00d4ff)', color: 'white',
                 fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
               }}
             >
-              {isProcessing ? '? Decomposing...' : '?? Snap Textbook & Parse'}
+              <RefreshCw size={13} className={isProcessing ? 'animate-spin' : ''} />
+              <span>{isProcessing ? 'Decomposing Diagram...' : 'Snap Diagram & Simulate'}</span>
             </button>
           </div>
 
@@ -408,7 +415,7 @@ export default function SnapAndSimulatePage() {
             <div>
               <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Step 2: Live 3D Scene</span>
               <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 17, color: '#00d4ff', margin: '2px 0 0' }}>
-                {selectedPreset.label} ? Live Interactive Canvas
+                {selectedPreset.label} — Live Interactive Canvas
               </h2>
             </div>
             <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 8, background: 'rgba(16,185,129,0.15)', color: '#10b981', fontWeight: 700 }}>
@@ -427,7 +434,7 @@ export default function SnapAndSimulatePage() {
 
             {/* In-Canvas Overlay Badge */}
             <div style={{ position: 'absolute', bottom: 12, left: 12, padding: '6px 12px', borderRadius: 8, background: 'rgba(2,4,8,0.85)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
-              Rotational Viewport: {(rotationAngle * 57.3 % 360).toFixed(0)}? ? 3D Physics Synced
+              Rotational Viewport: {(rotationAngle * 57.3 % 360).toFixed(0)}° • 3D Physics Synced
             </div>
           </div>
         </div>
@@ -450,35 +457,47 @@ export default function SnapAndSimulatePage() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                   <span>Resistor R1:</span>
-                  <span style={{ color: '#00d4ff', fontWeight: 700 }}>{resistorR1} ?</span>
+                  <span style={{ color: '#00d4ff', fontWeight: 700 }}>{resistorR1} Ω</span>
                 </div>
                 <input type="range" min="1" max="50" value={resistorR1} onChange={e => setResistorR1(Number(e.target.value))} style={{ width: '100%', accentColor: '#00d4ff' }} />
               </div>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                   <span>Resistor R2:</span>
-                  <span style={{ color: '#00d4ff', fontWeight: 700 }}>{resistorR2} ?</span>
+                  <span style={{ color: '#00d4ff', fontWeight: 700 }}>{resistorR2} Ω</span>
                 </div>
                 <input type="range" min="1" max="50" value={resistorR2} onChange={e => setResistorR2(Number(e.target.value))} style={{ width: '100%', accentColor: '#00d4ff' }} />
               </div>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                   <span>Resistor R3:</span>
-                  <span style={{ color: '#00d4ff', fontWeight: 700 }}>{resistorR3} ?</span>
+                  <span style={{ color: '#00d4ff', fontWeight: 700 }}>{resistorR3} Ω</span>
                 </div>
                 <input type="range" min="1" max="50" value={resistorR3} onChange={e => setResistorR3(Number(e.target.value))} style={{ width: '100%', accentColor: '#00d4ff' }} />
               </div>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                   <span>Resistor R4:</span>
-                  <span style={{ color: '#00d4ff', fontWeight: 700 }}>{resistorR4} ?</span>
+                  <span style={{ color: '#00d4ff', fontWeight: 700 }}>{resistorR4} Ω</span>
                 </div>
                 <input type="range" min="1" max="50" value={resistorR4} onChange={e => setResistorR4(Number(e.target.value))} style={{ width: '100%', accentColor: '#00d4ff' }} />
               </div>
 
               <div style={{ padding: 10, borderRadius: 8, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', fontSize: 11, lineHeight: 1.5 }}>
                 <strong style={{ color: '#10b981' }}>Bridge Condition:</strong>
-                <div>{Math.abs(resistorR1 * resistorR4 - resistorR2 * resistorR3) < 0.1 ? '? Perfectly Balanced (Ig = 0 mA)' : '?? Unbalanced: Current flows through galvanometer'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                  {Math.abs(resistorR1 * resistorR4 - resistorR2 * resistorR3) < 0.1 ? (
+                    <>
+                      <CheckCircle2 size={14} color="#10b981" />
+                      <span style={{ color: '#10b981', fontWeight: 600 }}>Perfect Null Deflection (Ig = 0 mA)</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle size={14} color="#f59e0b" />
+                      <span style={{ color: '#f59e0b', fontWeight: 600 }}>Unbalanced: Galvanometer deflects</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           )}

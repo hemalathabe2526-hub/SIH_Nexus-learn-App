@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { Mic, MicOff, Sparkles, ArrowLeft, CheckCircle2, AlertTriangle, ShieldCheck, HelpCircle, Award, Volume2, BookOpen } from 'lucide-react';
 
 interface VivaQuestion {
   id: string;
@@ -16,14 +17,14 @@ const VIVA_QUESTIONS: VivaQuestion[] = [
     id: 'viva_1',
     subject: 'Physics',
     topic: 'Wave Optics & Interference',
-    question: 'Explain why the interference fringe width ? decreases when we increase the slit separation distance d in Young\'s experiment.',
-    sampleKeyInsight: 'Because path difference ?x = y*d/D increases for the same angular position, meaning wave crests match and cancel over narrower spatial intervals.'
+    question: "Explain why the interference fringe width β decreases when we increase the slit separation distance d in Young's experiment.",
+    sampleKeyInsight: 'Because path difference Δx = y·d/D increases for the same angular position, meaning wave crests match and cancel over narrower spatial intervals.'
   },
   {
     id: 'viva_2',
     subject: 'Physics',
     topic: 'Electromagnetism & Induction',
-    question: 'Why does an inductor oppose any sudden change in electrical current according to Lenz\'s Law and energy conservation?',
+    question: "Why does an inductor oppose any sudden change in electrical current according to Lenz's Law and energy conservation?",
     sampleKeyInsight: 'The changing magnetic flux creates a back electromotive force (EMF = -L di/dt) that works against the source voltage to conserve magnetic field energy.'
   },
   {
@@ -37,7 +38,7 @@ const VIVA_QUESTIONS: VivaQuestion[] = [
     id: 'viva_4',
     subject: 'Chemistry',
     topic: 'Chemical Equilibrium & Thermodynamics',
-    question: 'How does an increase in total pressure shift the equilibrium for the synthesis of ammonia (N2 + 3H2 ? 2NH3)?',
+    question: 'How does an increase in total pressure shift the equilibrium for the synthesis of ammonia (N2 + 3H2 ⇌ 2NH3)?',
     sampleKeyInsight: 'By Le Chatelier principle, system shifts toward the side with fewer gas moles (4 moles reactants -> 2 moles product) to relieve the increased pressure.'
   }
 ];
@@ -48,7 +49,7 @@ export default function VivaVocePage() {
   const [oralTranscript, setOralTranscript] = useState('');
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState<any>(null);
-  const [audioLevel, setAudioLevel] = useState<number[]>([20, 45, 80, 50, 90, 30, 60, 40]);
+  const [audioLevel, setAudioLevel] = useState<number[]>([15, 25, 40, 60, 35, 20, 10]);
 
   const recognitionRef = useRef<any>(null);
 
@@ -57,69 +58,90 @@ export default function VivaVocePage() {
     if (typeof window !== 'undefined') {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
-        const recog = new SpeechRecognition();
-        recog.continuous = true;
-        recog.interimResults = true;
-        recog.lang = 'en-US';
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-IN';
 
-        recog.onresult = (event: any) => {
-          let full = '';
+        recognition.onresult = (event: any) => {
+          let currentTranscript = '';
           for (let i = 0; i < event.results.length; i++) {
-            full += event.results[i][0].transcript + ' ';
+            currentTranscript += event.results[i][0].transcript + ' ';
           }
-          setOralTranscript(full.trim());
+          setOralTranscript(currentTranscript);
         };
 
-        recog.onerror = () => setIsListening(false);
-        recog.onend = () => setIsListening(false);
-        recognitionRef.current = recog;
+        recognition.onerror = () => {
+          setIsListening(false);
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
       }
     }
   }, []);
 
-  // Audio wave animation
+  // Visual audio pulse animation when listening
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isListening) {
       interval = setInterval(() => {
         setAudioLevel([
-          Math.floor(Math.random() * 80) + 15,
-          Math.floor(Math.random() * 95) + 20,
-          Math.floor(Math.random() * 85) + 25,
-          Math.floor(Math.random() * 90) + 15,
-          Math.floor(Math.random() * 70) + 20,
-          Math.floor(Math.random() * 85) + 15,
-          Math.floor(Math.random() * 95) + 25,
-          Math.floor(Math.random() * 60) + 20,
+          Math.floor(20 + Math.random() * 70),
+          Math.floor(30 + Math.random() * 65),
+          Math.floor(40 + Math.random() * 60),
+          Math.floor(50 + Math.random() * 50),
+          Math.floor(35 + Math.random() * 65),
+          Math.floor(25 + Math.random() * 70),
+          Math.floor(15 + Math.random() * 80),
         ]);
-      }, 120);
+      }, 150);
     } else {
-      setAudioLevel([20, 20, 20, 20, 20, 20, 20, 20]);
+      setAudioLevel([15, 25, 40, 60, 35, 20, 10]);
     }
     return () => clearInterval(interval);
   }, [isListening]);
 
   const toggleListening = () => {
     if (isListening) {
-      recognitionRef.current?.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
       setIsListening(false);
     } else {
       setOralTranscript('');
-      setEvaluation(null);
-      try {
-        recognitionRef.current?.start();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+        } catch {
+          // If browser restricts, fallback with demo text
+          setIsListening(true);
+          simulateSpokenInput();
+        }
+      } else {
         setIsListening(true);
-      } catch {
-        setIsListening(true);
-        // Fallback simulated oral transcription if mic hardware locked
-        setOralTranscript('When slit separation d increases, the angular fringe spacing decreases because the path difference delta x between rays reaching the screen grows faster with spatial distance y. Since fringe width beta equals lambda times D over d, d is in the denominator, meaning fringes crowd closer together.');
+        simulateSpokenInput();
       }
     }
   };
 
+  const simulateSpokenInput = () => {
+    setTimeout(() => {
+      setOralTranscript("In Young's double slit experiment, the fringe width beta is given by lambda times big D divided by small d. When we increase the slit separation distance small d, the angular separation between successive interference maxima becomes smaller because the rays from the two slits develop a path difference more rapidly with angle. Thus, the bright fringes become closer to each other.");
+      setIsListening(false);
+    }, 3000);
+  };
+
   const submitOralDefense = async () => {
     if (!oralTranscript.trim()) return;
+
     setIsEvaluating(true);
+    setEvaluation(null);
+
     try {
       const res = await fetch('/api/socratic-viva', {
         method: 'POST',
@@ -130,13 +152,10 @@ export default function VivaVocePage() {
           subject: selectedQuestion.subject,
         })
       });
-      const data = await res.json();
-      setEvaluation(data.evaluation);
 
-      // Speak probing follow-up verbally
-      if (typeof window !== 'undefined' && data.evaluation?.probingFollowUp) {
-        const u = new SpeechSynthesisUtterance(data.evaluation.probingFollowUp);
-        window.speechSynthesis.speak(u);
+      if (res.ok) {
+        const data = await res.json();
+        setEvaluation(data);
       }
     } catch {
       // Fallback
@@ -154,19 +173,21 @@ export default function VivaVocePage() {
         backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, flexWrap: 'wrap', gap: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/dashboard" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700 }}>
-            ? Back to Dashboard
+          <Link href="/dashboard" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ArrowLeft size={16} />
+            <span>Back to Dashboard</span>
           </Link>
           <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
           <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>???</span>
-            <span>Socratic Voice Examiner ("Viva-Voce AI Mode")</span>
+            <Mic size={18} color="#10b981" />
+            <span>Socratic Voice Examiner (Oral Viva Practice)</span>
           </h1>
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
-          <Link href="/agent" style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.4)', color: '#c084fc', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>
-            ?? AI Pedagogical Agent ?
+          <Link href="/agent" style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.4)', color: '#c084fc', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Sparkles size={14} />
+            <span>AI Pedagogical Agent</span>
           </Link>
         </div>
       </div>
@@ -177,12 +198,12 @@ export default function VivaVocePage() {
         {/* LEFT COLUMN: Question Topic Selector */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 16 }}>
           <div>
-            <span style={{ fontSize: 11, color: '#00d4ff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Oral Defense Pool</span>
+            <span style={{ fontSize: 11, color: '#00d4ff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Viva Topics</span>
             <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: '4px 0' }}>
-              Select Viva Topic
+              Select Oral Defense Topic
             </h2>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', margin: 0 }}>
-              Written multiple-choice questions can be guessed. The Socratic Examiner tests oral conceptual integrity.
+              Multiple-choice questions test memory. Oral viva tests true understanding and first-principles reasoning.
             </p>
           </div>
 
@@ -257,7 +278,8 @@ export default function VivaVocePage() {
                 display: 'flex', alignItems: 'center', gap: 10,
               }}
             >
-              <span>{isListening ? '?? Stop Speaking & Process' : '??? Tap to Speak Answer'}</span>
+              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+              <span>{isListening ? 'Stop Speaking & Review' : 'Tap to Speak Answer'}</span>
             </button>
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
               {isListening ? 'Listening via browser microphone... Speak naturally.' : 'Click to begin oral conceptual defense.'}
@@ -289,17 +311,20 @@ export default function VivaVocePage() {
                 padding: '10px 24px', borderRadius: 8, border: 'none',
                 background: 'linear-gradient(135deg, #10b981, #00d4ff)', color: 'white',
                 fontWeight: 700, fontSize: 13, cursor: isEvaluating ? 'wait' : 'pointer', fontFamily: 'Outfit',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
               }}
             >
-              {isEvaluating ? '?? Evaluating Conceptual Depth...' : '? Grade Oral Defense'}
+              <Award size={16} />
+              <span>{isEvaluating ? 'Evaluating Conceptual Depth...' : 'Grade Oral Defense'}</span>
             </button>
           </div>
         </div>
 
         {/* RIGHT COLUMN: Socratic Evaluation & Counter-Probe */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 18 }}>
-          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#10b981', margin: 0 }}>
-            ?? Viva Defense Scorecard
+          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#10b981', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Award size={18} color="#10b981" />
+            <span>Viva Defense Scorecard</span>
           </h2>
 
           {evaluation ? (
@@ -317,8 +342,9 @@ export default function VivaVocePage() {
 
               {/* Rote Memorization Radar */}
               <div style={{ padding: 12, borderRadius: 10, background: evaluation.roteMemorizationDetected ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.08)', border: `1px solid ${evaluation.roteMemorizationDetected ? '#ef4444' : '#10b981'}` }}>
-                <strong style={{ fontSize: 12, color: evaluation.roteMemorizationDetected ? '#ef4444' : '#10b981' }}>
-                  {evaluation.roteMemorizationDetected ? '?? Rote Memorization Flagged' : '? First-Principles Reasoning Verified'}
+                <strong style={{ fontSize: 12, color: evaluation.roteMemorizationDetected ? '#ef4444' : '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {evaluation.roteMemorizationDetected ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
+                  <span>{evaluation.roteMemorizationDetected ? 'Rote Memorization Flagged' : 'First-Principles Reasoning Verified'}</span>
                 </strong>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
                   {evaluation.conceptualDepth}
@@ -328,7 +354,7 @@ export default function VivaVocePage() {
               {/* Socratic Verbal Probing Question */}
               <div style={{ padding: 14, borderRadius: 12, background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.4)' }}>
                 <div style={{ fontSize: 11, color: '#c084fc', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>??</span>
+                  <HelpCircle size={15} />
                   <span>EXAMINER FOLLOW-UP COUNTER-PROBE:</span>
                 </div>
                 <p style={{ fontSize: 13, color: 'white', margin: '8px 0 0', lineHeight: 1.5, fontStyle: 'italic' }}>

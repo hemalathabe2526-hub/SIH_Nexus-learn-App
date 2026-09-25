@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Swords, Shield, Zap, Heart, ArrowLeft, Users, Calculator, BookOpen } from 'lucide-react';
 
 interface BattleLogEntry {
   time: string;
@@ -19,7 +20,7 @@ export default function RpgMultiplayerPage() {
   const [player1Answer, setPlayer1Answer] = useState('');
   const [player2SelectedLaw, setPlayer2SelectedLaw] = useState('');
   const [battleLogs, setBattleLogs] = useState<BattleLogEntry[]>([
-    { time: '12:01:05', sender: 'System', text: '?? Party entered Room NEXUS-ENTROPY-42! Boss "The Entropy Titan" awakens!', type: 'chat' },
+    { time: '12:01:05', sender: 'System', text: 'Party entered Room NEXUS-ENTROPY-42! Boss "The Entropy Titan" awakens!', type: 'chat' },
     { time: '12:01:12', sender: 'Priya (Theorist)', text: 'Ready! Calculator handle the delta W math, I will match the thermodynamic process!', type: 'chat' }
   ]);
   const [comboFlash, setComboFlash] = useState(false);
@@ -43,7 +44,7 @@ export default function RpgMultiplayerPage() {
         ...prev,
         {
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-          sender: '?? TEAM DUAL COMBO',
+          sender: 'TEAM DUAL COMBO',
           text: 'Priya identified Isobaric Expansion & Ravi calculated W = 400 J! Executed "CARNOT REVERSIBLE BURST" dealing -750 Critical DMG!',
           type: 'combo'
         }
@@ -73,19 +74,21 @@ export default function RpgMultiplayerPage() {
         backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, flexWrap: 'wrap', gap: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/rpg" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700 }}>
-            ? Back to Solo RPG
+          <Link href="/rpg" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ArrowLeft size={16} />
+            <span>Back to Solo RPG</span>
           </Link>
           <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
           <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>??</span>
+            <Swords size={18} color="#fbbf24" />
             <span>Real-Time Multiplayer Co-Op Dungeon Battles</span>
           </h1>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', fontSize: 12, fontWeight: 700 }}>
-            Party Room: NEXUS-ENTROPY-42 (2/3 Players Ready)
+          <div style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Users size={14} />
+            <span>Party Room: NEXUS-ENTROPY-42 (2/3 Players Ready)</span>
           </div>
         </div>
       </div>
@@ -107,11 +110,11 @@ export default function RpgMultiplayerPage() {
                 <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: '#ef4444', color: '#fff', fontWeight: 700 }}>
                   STAGE 4 CO-OP RAID BOSS
                 </span>
-                <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 28, color: 'white', margin: '8px 0 4px' }}>
-                  ?? The Entropy Titan (?S ? 0)
+                <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 28, color: 'white', margin: '8px 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span>The Entropy Titan (ΔS ≥ 0)</span>
                 </h2>
                 <div style={{ fontSize: 13, color: '#c084fc' }}>
-                  Trait: "Thermal Dissipation" ? Requires simultaneous calculation & theoretical law pairing
+                  Trait: "Thermal Dissipation" • Requires simultaneous calculation & theoretical law pairing
                 </div>
               </div>
 
@@ -132,7 +135,7 @@ export default function RpgMultiplayerPage() {
                 Current Team Challenge:
               </div>
               <p style={{ fontSize: 14, color: 'white', lineHeight: 1.6, margin: '6px 0 0' }}>
-                "A gas expands at a constant pressure of <strong>2.0 ? 10? Pa</strong> from an initial volume of <strong>0.001 m?</strong> to a final volume of <strong>0.003 m?</strong>."
+                "A gas expands at a constant pressure of <strong>2.0 × 10⁵ Pa</strong> from an initial volume of <strong>0.001 m³</strong> to a final volume of <strong>0.003 m³</strong>."
               </p>
             </div>
           </div>
@@ -142,13 +145,14 @@ export default function RpgMultiplayerPage() {
             {/* Player 1: The Calculator */}
             <div style={{ padding: 16, borderRadius: 14, background: 'rgba(0,102,255,0.08)', border: '1px solid rgba(0,102,255,0.3)', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: '#60a5fa' }}>
-                  ????? Player 1 (Calculator): Ravi
+                <div style={{ fontWeight: 700, fontSize: 13, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Calculator size={15} />
+                  <span>Player 1 (Calculator): Ravi</span>
                 </div>
                 <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(0,102,255,0.2)', color: '#60a5fa', fontWeight: 700 }}>MATH ROLE</span>
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
-                Calculate Work Done W = P ? ?V (in Joules):
+                Calculate Work Done W = P × ΔV (in Joules):
               </div>
               <input
                 type="text"
@@ -166,8 +170,9 @@ export default function RpgMultiplayerPage() {
             {/* Player 2: The Theorist */}
             <div style={{ padding: 16, borderRadius: 14, background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.3)', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: '#c084fc' }}>
-                  ????? Player 2 (Theorist): Priya
+                <div style={{ fontWeight: 700, fontSize: 13, color: '#c084fc', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <BookOpen size={15} />
+                  <span>Player 2 (Theorist): Priya</span>
                 </div>
                 <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(168,85,247,0.2)', color: '#c084fc', fontWeight: 700 }}>THEORY ROLE</span>
               </div>
@@ -201,7 +206,7 @@ export default function RpgMultiplayerPage() {
               boxShadow: '0 4px 20px rgba(245,158,11,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
             }}
           >
-            <span>??</span>
+            <Zap size={18} />
             <span>Execute Synchronized Team Combo Strike!</span>
           </button>
         </div>
@@ -209,8 +214,9 @@ export default function RpgMultiplayerPage() {
         {/* RIGHT COLUMN: Real-Time Battle Feed & Party Status */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 15, color: '#00d4ff', margin: 0 }}>
-              ??? Party Health & Mana
+            <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 15, color: '#00d4ff', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Heart size={16} color="#ef4444" />
+              <span>Party Health & Mana</span>
             </h3>
             <span style={{ fontSize: 12, color: '#10b981', fontWeight: 700 }}>{partyHp} / {maxPartyHp} HP</span>
           </div>

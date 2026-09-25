@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { Box, Camera, CameraOff, Sparkles, ArrowLeft, Eye, Atom, Cpu, Lightbulb, Compass, RotateCw } from 'lucide-react';
 
 export default function WebXRDeskARPage() {
   const [arModel, setArModel] = useState<'optics' | 'bohr' | 'circuit'>('optics');
@@ -31,7 +32,7 @@ export default function WebXRDeskARPage() {
           videoRef.current.play();
         }
         setIsCameraActive(true);
-      } catch (err) {
+      } catch {
         alert('Camera access unavailable or denied. Running high-fidelity desk projection simulator.');
       }
     }
@@ -161,7 +162,7 @@ export default function WebXRDeskARPage() {
         ctx.fillStyle = '#fff';
         ctx.font = '10px JetBrains Mono';
         ctx.fillText('12V', -15 * scale, -56 * scale);
-        ctx.fillText('R=10?', 70 * scale, 30 * scale);
+        ctx.fillText('R=10Ω', 70 * scale, 30 * scale);
       }
 
       ctx.restore();
@@ -201,12 +202,13 @@ export default function WebXRDeskARPage() {
         backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, flexWrap: 'wrap', gap: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/virtuallab" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700 }}>
-            ? Virtual Labs
+          <Link href="/virtuallab" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ArrowLeft size={16} />
+            <span>Back to Virtual Labs</span>
           </Link>
           <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
           <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>??</span>
+            <Box size={18} color="#c084fc" />
             <span>Live WebXR / AR Projection-on-Desk Studio</span>
           </h1>
         </div>
@@ -218,9 +220,11 @@ export default function WebXRDeskARPage() {
               padding: '7px 16px', borderRadius: 8, border: 'none',
               background: isCameraActive ? 'rgba(239,68,68,0.2)' : 'linear-gradient(135deg, #10b981, #00d4ff)',
               color: isCameraActive ? '#ef4444' : 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit', fontSize: 12,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
             }}
           >
-            {isCameraActive ? '?? Turn Off Camera' : '?? Use Study Desk Camera'}
+            {isCameraActive ? <CameraOff size={15} /> : <Camera size={15} />}
+            <span>{isCameraActive ? 'Turn Off Camera' : 'Use Study Desk Camera'}</span>
           </button>
         </div>
       </div>
@@ -263,23 +267,27 @@ export default function WebXRDeskARPage() {
             background: 'rgba(2,4,8,0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,212,255,0.3)',
             fontFamily: 'JetBrains Mono', fontSize: 11, display: 'flex', flexDirection: 'column', gap: 4,
           }}>
-            <div style={{ color: '#00d4ff', fontWeight: 700 }}>?? WebXR Spatial Anchor: ACTIVE</div>
+            <div style={{ color: '#00d4ff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Compass size={14} />
+              <span>WebXR Spatial Anchor: ACTIVE</span>
+            </div>
             <div style={{ color: '#10b981' }}>{arStatus}</div>
-            <div style={{ color: 'rgba(255,255,255,0.6)' }}>Scale: {scale.toFixed(1)}x ? Yaw: {rotation}? ? Light: 450 lux</div>
+            <div style={{ color: 'rgba(255,255,255,0.6)' }}>Scale: {scale.toFixed(1)}x • Yaw: {rotation}° • Ambient: 450 lux</div>
           </div>
         </div>
 
         {/* Controls Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 18 }}>
-          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#00d4ff', margin: 0 }}>
-            ?? AR Hologram Selector
+          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#00d4ff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Box size={18} color="#00d4ff" />
+            <span>AR Hologram Model</span>
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[
-              { id: 'optics', label: 'Ray Optics Bench', desc: 'Convex lens refraction on your desk', icon: '??' },
-              { id: 'bohr', label: 'Bohr Quantum Orbitals', desc: 'Atomic lattice floating above paper', icon: '??' },
-              { id: 'circuit', label: '3D Breadboard Circuit', desc: 'Interactive circuit with voltage glow', icon: '?' },
+              { id: 'optics', label: 'Ray Optics Bench', desc: 'Convex lens refraction on your desk', type: 'optics' },
+              { id: 'bohr', label: 'Bohr Quantum Orbitals', desc: 'Atomic lattice floating above paper', type: 'bohr' },
+              { id: 'circuit', label: '3D Breadboard Circuit', desc: 'Interactive circuit with voltage glow', type: 'circuit' },
             ].map(m => (
               <button
                 key={m.id}
@@ -291,8 +299,13 @@ export default function WebXRDeskARPage() {
                   color: arModel === m.id ? '#00d4ff' : 'white', cursor: 'pointer', fontFamily: 'Outfit',
                 }}
               >
-                <div style={{ fontWeight: 700, fontSize: 13 }}>{m.icon} {m.label}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>{m.desc}</div>
+                <div style={{ fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {m.type === 'optics' && <Eye size={15} color="#00d4ff" />}
+                  {m.type === 'bohr' && <Atom size={15} color="#c084fc" />}
+                  {m.type === 'circuit' && <Cpu size={15} color="#10b981" />}
+                  <span>{m.label}</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{m.desc}</div>
               </button>
             ))}
           </div>
@@ -309,14 +322,17 @@ export default function WebXRDeskARPage() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                 <span>Desk Rotation:</span>
-                <span style={{ color: '#10b981', fontWeight: 700 }}>{rotation}?</span>
+                <span style={{ color: '#10b981', fontWeight: 700 }}>{rotation}°</span>
               </div>
               <input type="range" min="0" max="360" value={rotation} onChange={e => setRotation(Number(e.target.value))} style={{ width: '100%', accentColor: '#10b981' }} />
             </div>
 
             <div style={{ padding: 12, borderRadius: 10, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)', fontSize: 12, lineHeight: 1.5 }}>
-              <strong style={{ color: '#c084fc' }}>?? Interaction Tip:</strong>
-              <div style={{ color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
+              <strong style={{ color: '#c084fc', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Lightbulb size={14} />
+                <span>Interaction Tip:</span>
+              </strong>
+              <div style={{ color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
                 Click anywhere on the holographic viewport to cast a red AR laser measurement probe onto physical desk components!
               </div>
             </div>

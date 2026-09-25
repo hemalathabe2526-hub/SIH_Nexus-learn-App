@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       conceptualDepth: 'High - Strong physical intuition with causal reasoning',
       roteMemorizationDetected: false,
       identifiedMisconceptions: 'None major; correctly distinguished between physical slit gap d and screen distance D.',
-      strengths: 'Clearly articulated the inverse proportional relationship (? = ?D/d) and how path difference produces constructive interference fringes.',
+      strengths: 'Clearly articulated the inverse proportional relationship (β = λ·D/d) and how path difference produces constructive interference fringes.',
       probingFollowUp: 'Excellent explanation! Now, what happens if we immerse this entire double-slit apparatus into water with refractive index n = 1.33? How does the fringe width change?',
       examinerVerdict: 'APPROVED_WITH_DISTINCTION'
     };

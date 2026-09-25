@@ -15,10 +15,10 @@ export async function POST(req: NextRequest) {
         title: 'Wheatstone Bridge Resistor Network',
         equation: 'R1 / R2 = R3 / R4 => Balanced Condition',
         components: [
-          { id: 'R1', type: 'resistor', value: 10, unit: '?', x: -2, y: 1.2, z: 0, status: 'active' },
-          { id: 'R2', type: 'resistor', value: 20, unit: '?', x: 2, y: 1.2, z: 0, status: 'active' },
-          { id: 'R3', type: 'resistor', value: 15, unit: '?', x: -2, y: -1.2, z: 0, status: 'active' },
-          { id: 'R4', type: 'resistor', value: 30, unit: '?', x: 2, y: -1.2, z: 0, status: 'active' },
+          { id: 'R1', type: 'resistor', value: 10, unit: 'Ω', x: -2, y: 1.2, z: 0, status: 'active' },
+          { id: 'R2', type: 'resistor', value: 20, unit: 'Ω', x: 2, y: 1.2, z: 0, status: 'active' },
+          { id: 'R3', type: 'resistor', value: 15, unit: 'Ω', x: -2, y: -1.2, z: 0, status: 'active' },
+          { id: 'R4', type: 'resistor', value: 30, unit: 'Ω', x: 2, y: -1.2, z: 0, status: 'active' },
           { id: 'V1', type: 'battery', value: 12, unit: 'V', x: 0, y: -2.8, z: 0, status: 'source' },
           { id: 'G1', type: 'galvanometer', value: 0.0, unit: 'mA', x: 0, y: 0, z: 0, status: 'balanced' },
         ],
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
           ['V1', 'R1'], ['R1', 'G1'], ['G1', 'R2'], ['R1', 'R3'], ['R2', 'R4'], ['R3', 'V1'], ['R4', 'V1']
         ],
         calculatedValues: {
-          equivalentResistance: '16.67 ?',
+          equivalentResistance: '16.67 Ω',
           totalCurrent: '0.72 A',
           bridgeStatus: 'Perfect Null Deflection (Ig = 0 mA)'
         }

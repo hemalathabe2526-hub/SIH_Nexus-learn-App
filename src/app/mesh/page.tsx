@@ -1,52 +1,43 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import { Wifi, Share2, ArrowLeft, RefreshCw, Server, Smartphone, PackageCheck, ShieldCheck } from 'lucide-react';
 
-interface PeerNode {
+interface MeshPeer {
   id: string;
   name: string;
   role: 'hub' | 'peer';
   distance: string;
-  status: 'offline' | 'discovering' | 'syncing' | 'synced';
+  battery: string;
+  status: 'synced' | 'syncing' | 'idle';
   syncedPercent: number;
   packetsReceived: number;
-  battery: string;
 }
 
-export default function OfflineMeshSwarmPage() {
-  const [peers, setPeers] = useState<PeerNode[]>([
-    { id: 'node_hub', name: 'Ravi (Town Sync Hub)', role: 'hub', distance: 'Local Host', status: 'synced', syncedPercent: 100, packetsReceived: 450, battery: '88%' },
-    { id: 'node_1', name: 'Priya (Village Peer 1)', role: 'peer', distance: '3.2 meters (BLE)', status: 'offline', syncedPercent: 0, packetsReceived: 0, battery: '64%' },
-    { id: 'node_2', name: 'Karthik (Village Peer 2)', role: 'peer', distance: '5.8 meters (Wi-Fi Direct)', status: 'offline', syncedPercent: 0, packetsReceived: 0, battery: '91%' },
-    { id: 'node_3', name: 'Ananya (Village Peer 3)', role: 'peer', distance: '8.4 meters (Mesh Relay)', status: 'offline', syncedPercent: 0, packetsReceived: 0, battery: '42%' },
+export default function OfflineMeshPage() {
+  const [peers, setPeers] = useState<MeshPeer[]>([
+    { id: 'node_1', name: 'Ravi Phone (Town Carrier Hub)', role: 'hub', distance: '3.2m', battery: '82%', status: 'synced', syncedPercent: 100, packetsReceived: 450 },
+    { id: 'node_2', name: 'Priya Phone (Ad-Hoc Relay)', role: 'peer', distance: '8.4m', battery: '64%', status: 'synced', syncedPercent: 100, packetsReceived: 450 },
+    { id: 'node_3', name: 'Ananya Tablet (Village Node)', role: 'peer', distance: '12.1m', battery: '91%', status: 'syncing', syncedPercent: 68, packetsReceived: 306 },
+    { id: 'node_4', name: 'Community Center Solar Pi Hub', role: 'hub', distance: '24.0m', battery: '100% (Solar)', status: 'synced', syncedPercent: 100, packetsReceived: 450 },
   ]);
 
   const [isSyncing, setIsSyncing] = useState(false);
-  const [totalBytesSynced, setTotalBytesSynced] = useState(0);
-  const [activeTransferRate, setActiveTransferRate] = useState('0 MB/s');
+  const [totalBytesSynced, setTotalBytesSynced] = useState(14200000);
+  const [activeTransferRate, setActiveTransferRate] = useState('Idle');
 
   const startMeshSync = () => {
     setIsSyncing(true);
-    setActiveTransferRate('18.4 MB/s (Local Wi-Fi Direct / WebRTC)');
-
-    // Step 1: Discover
-    setPeers(prev => prev.map(p => p.role === 'peer' ? { ...p, status: 'discovering' } : p));
-
-    // Step 2: Progressively sync
-    setTimeout(() => {
-      setPeers(prev => prev.map(p => p.role === 'peer' ? { ...p, status: 'syncing', syncedPercent: 45, packetsReceived: 180 } : p));
-      setTotalBytesSynced(8400000);
-    }, 1200);
+    setActiveTransferRate('4.8 MB/s via Wi-Fi Direct P2P Channel');
 
     setTimeout(() => {
-      setPeers(prev => prev.map(p => p.role === 'peer' ? { ...p, status: 'syncing', syncedPercent: 85, packetsReceived: 360 } : p));
-      setTotalBytesSynced(16200000);
-    }, 2400);
-
-    // Step 3: Complete
-    setTimeout(() => {
-      setPeers(prev => prev.map(p => p.role === 'peer' ? { ...p, status: 'synced', syncedPercent: 100, packetsReceived: 450 } : p));
+      setPeers(prev => prev.map(p => ({
+        ...p,
+        status: 'synced',
+        syncedPercent: 100,
+        packetsReceived: 450,
+      })));
       setTotalBytesSynced(18600000);
       setIsSyncing(false);
       setActiveTransferRate('Sync Complete (0 B internet data consumed)');
@@ -62,12 +53,13 @@ export default function OfflineMeshSwarmPage() {
         backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, flexWrap: 'wrap', gap: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/offline" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700 }}>
-            ? Back to Offline Hub
+          <Link href="/offline" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ArrowLeft size={16} />
+            <span>Back to Offline Hub</span>
           </Link>
           <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
           <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>??</span>
+            <Wifi size={18} color="#34d399" />
             <span>Peer-to-Peer Offline Mesh Swarm (Zero-Internet Sync Engine)</span>
           </h1>
         </div>
@@ -80,10 +72,11 @@ export default function OfflineMeshSwarmPage() {
               padding: '8px 20px', borderRadius: 8, border: 'none',
               background: 'linear-gradient(135deg, #10b981, #00d4ff)', color: 'white',
               fontWeight: 700, cursor: isSyncing ? 'wait' : 'pointer', fontFamily: 'Outfit', fontSize: 12,
-              boxShadow: '0 4px 15px rgba(16,185,129,0.3)',
+              boxShadow: '0 4px 15px rgba(16,185,129,0.3)', display: 'inline-flex', alignItems: 'center', gap: 6,
             }}
           >
-            {isSyncing ? '? Syncing P2P Packets...' : '? Initiate Ad-Hoc Mesh Sync'}
+            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+            <span>{isSyncing ? 'Syncing P2P Packets...' : 'Initiate Ad-Hoc Mesh Sync'}</span>
           </button>
         </div>
       </div>
@@ -121,8 +114,9 @@ export default function OfflineMeshSwarmPage() {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: peer.role === 'hub' ? '#60a5fa' : 'white' }}>
-                    {peer.role === 'hub' ? '?? ' : '?? '} {peer.name}
+                  <div style={{ fontWeight: 700, fontSize: 14, color: peer.role === 'hub' ? '#60a5fa' : 'white', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {peer.role === 'hub' ? <Server size={15} color="#60a5fa" /> : <Smartphone size={15} color="#34d399" />}
+                    <span>{peer.name}</span>
                   </div>
                   <span style={{
                     fontSize: 10, padding: '2px 8px', borderRadius: 6, fontWeight: 700,
@@ -169,8 +163,9 @@ export default function OfflineMeshSwarmPage() {
 
         {/* RIGHT COLUMN: Synced Offline Packs */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 18 }}>
-          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#10b981', margin: 0 }}>
-            ?? Synced Educational Packages
+          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#10b981', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <PackageCheck size={18} color="#10b981" />
+            <span>Synced Educational Packages</span>
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

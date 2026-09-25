@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Phone, PhoneCall, PhoneOff, Mic, Volume2, Globe, Sparkles, ArrowLeft, User, Bot, Radio } from 'lucide-react';
 
 interface CallTranscriptItem {
   speaker: 'student' | 'ai_tutor';
@@ -9,29 +10,23 @@ interface CallTranscriptItem {
   time: string;
 }
 
-export default function DialInTollFreePage() {
-  const [phoneNumber, setPhoneNumber] = useState('1800-63987-53276');
-  const [language, setLanguage] = useState<'english' | 'hindi' | 'tamil'>('hindi');
+export default function DialInTutorPage() {
   const [callState, setCallState] = useState<'idle' | 'calling' | 'connected' | 'ended'>('idle');
-  const [callDuration, setCallDuration] = useState(0);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [transcripts, setTranscripts] = useState<CallTranscriptItem[]>([]);
+  const [phoneNumber, setPhoneNumber] = useState('1800-891-LEARN (Toll Free)');
   const [dtmfInput, setDtmfInput] = useState('');
+  const [language, setLanguage] = useState<'hindi' | 'tamil' | 'english'>('english');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+  const [transcripts, setTranscripts] = useState<CallTranscriptItem[]>([]);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Call duration timer
   useEffect(() => {
+    let timer: NodeJS.Timeout;
     if (callState === 'connected') {
-      timerRef.current = setInterval(() => {
+      timer = setInterval(() => {
         setCallDuration(prev => prev + 1);
       }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
     }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => clearInterval(timer);
   }, [callState]);
 
   // Start Call Flow
@@ -44,8 +39,8 @@ export default function DialInTollFreePage() {
       setCallState('connected');
       const welcomeTexts = {
         english: 'Namaste! Welcome to Nexus Learn Toll-Free Socratic Voice Tutor. You can ask me any question in Physics, Math, or Chemistry. What would you like to learn today?',
-        hindi: '??????! ?????? ???? ???-???? ???? ?????? ??? ???? ?????? ??? ????? ???????, ???? ?? ????? ??????? ??? ?? ???? ????? ????? ????',
-        tamil: '???????! ??????? ?????? ??????????? ?????? ????????????? ????????????. ????????? ?????? ?????????? ?????? ?????????? ?????????.'
+        hindi: 'नमस्ते! नेक्सस लर्न AI फोन ट्यूटर में आपका स्वागत है। आप भौतिकी या गणित से जुड़ा कोई भी सवाल पूछ सकते हैं। आज आप क्या सीखना चाहते हैं?',
+        tamil: 'வணக்கம்! நெக்ஸஸ் லேர்ன் AI போன் டியூட்டருக்கு வரவேற்கிறோம். இயற்பியல் அல்லது கணிதம் குறித்த எந்தக் கேள்வியையும் நீங்கள் கேட்கலாம்.'
       };
       const welcome = welcomeTexts[language];
       setTranscripts([{ speaker: 'ai_tutor', text: welcome, time: '00:02' }]);
@@ -80,12 +75,14 @@ export default function DialInTollFreePage() {
     // AI Verbal Answer
     setTimeout(() => {
       const answers: Record<string, string> = {
-        "What is Newton\'s Third Law?": "Newton's Third Law states that whenever one object exerts a force on a second object, the second exerts an equal and opposite force on the first. For example, when you jump off a boat, you push the boat backward while the boat pushes you forward!",
-        '??? ?? ????? ???? ???? ???': '?????? ?? ????? ???? ?? ??????, ???????? ?????? ?? ????? ?? ?????? ???? ??? ??????????? ???? ??? ???? ?? ?? ??? ?? ????? ???, ?? ?? ??? ?? ???? ?????? ??? ?? ??? ???? ???!',
-        '??????? ???? ??????? ?????': '??????????? ??????? ???? ?????? ????????????? ???? ???? ?????? ??????????? ????????? ?????????? ??????? ??????????. F = G m1 m2 divided by r squared.'
+        "What is Newton's Third Law?": "Newton's Third Law states that whenever one object exerts a force on a second object, the second exerts an equal and opposite force on the first. For example, when you jump off a boat, you push the boat backward while the boat pushes you forward!",
+        'न्यूटन का तीसरा नियम क्या है?': 'न्यूटन का तीसरा नियम कहता है कि प्रत्येक क्रिया के बराबर और विपरीत दिशा में प्रतिक्रिया होती है। उदाहरण के लिए जब आप नाव से कूदते हैं, तो आप नाव को पीछे धकेलते हैं और नाव आपको आगे धकेलती है!',
+        'टॉर्क और लीवर आर्म के बारे में बताएं': 'टॉर्क घूर्णी बल होता है। किसी दरवाजे के बाहरी हैंडल को धक्का देना आसान होता है क्योंकि धुरी से दूरी अधिक होने पर टॉर्क बढ़ जाता है। सूत्र है: टॉर्क = बल × दूरी × sin(θ)।',
+        'நியூட்டனின் மூன்றாவது விதி என்ன?': 'நியூட்டனின் மூன்றாவது விதியின்படி, ஒவ்வொரு வினைக்கும் சமமானதும் எதிரானதுமான எதிர்வினை உண்டு. உதாரணமாக படகிலிருந்து குதிக்கும்போது படகை பின்னுக்குத் தள்ளுகிறோம்!',
+        'டார்க் (Torque) பற்றி விளக்குங்கள்': 'டார்க் என்பது சுழற்சி விசை. கதவின் கைப்பிடி விளிம்பில் இருப்பதால் எளிதில் திறக்க முடிகிறது. சூத்திரம்: Torque = Force × Distance × sin(θ).'
       };
 
-      const reply = answers[question] || 'That is a fundamental question! Let us break it down into simple concepts...';
+      const reply = answers[question] || 'That is a fundamental question! Let us break it down step by step with first-principles reasoning.';
       const aiItem: CallTranscriptItem = {
         speaker: 'ai_tutor',
         text: reply,
@@ -118,19 +115,21 @@ export default function DialInTollFreePage() {
         backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, flexWrap: 'wrap', gap: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/dashboard" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700 }}>
-            ? Back to Dashboard
+          <Link href="/dashboard" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ArrowLeft size={16} />
+            <span>Back to Dashboard</span>
           </Link>
           <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
           <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>??</span>
+            <PhoneCall size={18} color="#f59e0b" />
             <span>Ultra-Low-Latency Full-Duplex AI Dial-In (SIP / WebRTC)</span>
           </h1>
         </div>
 
-        <div style={{ display: 'flex', gap: 8 }}>
-          <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 8, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontWeight: 700 }}>
-            Tier 4 Zero-Data / Feature Phone Ready
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 8, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Radio size={14} />
+            <span>Zero-Data / Feature Phone Ready</span>
           </span>
         </div>
       </div>
@@ -150,7 +149,7 @@ export default function DialInTollFreePage() {
             border: '1px solid rgba(0,212,255,0.3)', textAlign: 'center', marginBottom: 16,
           }}>
             <div style={{ fontSize: 11, color: callState === 'connected' ? '#10b981' : 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
-              {callState === 'calling' ? 'Calling SIP Gateway...' : callState === 'connected' ? `CONNECTED ? ${formatDuration(callDuration)}` : callState === 'ended' ? 'Call Disconnected' : 'Ready to Dial'}
+              {callState === 'calling' ? 'Calling SIP Gateway...' : callState === 'connected' ? `CONNECTED • ${formatDuration(callDuration)}` : callState === 'ended' ? 'Call Disconnected' : 'Ready to Dial'}
             </div>
             <div style={{ fontSize: 17, fontWeight: 700, color: 'white', marginTop: 4, letterSpacing: 1 }}>
               {phoneNumber}
@@ -189,10 +188,11 @@ export default function DialInTollFreePage() {
                   flex: 1, padding: '12px 0', borderRadius: 12, border: 'none',
                   background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white',
                   fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Outfit',
-                  boxShadow: '0 4px 15px rgba(16,185,129,0.3)',
+                  boxShadow: '0 4px 15px rgba(16,185,129,0.3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
               >
-                {callState === 'calling' ? 'Dialing...' : '?? Call 1800 Toll-Free'}
+                <Phone size={16} />
+                <span>{callState === 'calling' ? 'Dialing...' : 'Call 1800 Toll-Free'}</span>
               </button>
             ) : (
               <button
@@ -201,10 +201,11 @@ export default function DialInTollFreePage() {
                   flex: 1, padding: '12px 0', borderRadius: 12, border: 'none',
                   background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white',
                   fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Outfit',
-                  boxShadow: '0 4px 15px rgba(239,68,68,0.3)',
+                  boxShadow: '0 4px 15px rgba(239,68,68,0.3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
               >
-                ?? End Call
+                <PhoneOff size={16} />
+                <span>End Call</span>
               </button>
             )}
           </div>
@@ -262,9 +263,12 @@ export default function DialInTollFreePage() {
                     fontSize: 13, lineHeight: 1.5,
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: t.speaker === 'student' ? '#60a5fa' : '#00d4ff', fontWeight: 700, marginBottom: 2 }}>
-                    <span>{t.speaker === 'student' ? '????? Student Spoke' : '?? AI Phone Tutor'}</span>
-                    <span>{t.time}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: t.speaker === 'student' ? '#60a5fa' : '#00d4ff', fontWeight: 700, marginBottom: 4, alignItems: 'center', gap: 6 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {t.speaker === 'student' ? <User size={13} /> : <Bot size={13} />}
+                      {t.speaker === 'student' ? 'Student Spoke' : 'AI Phone Tutor'}
+                    </span>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>{t.time}</span>
                   </div>
                   <div>{t.text}</div>
                 </div>
@@ -275,25 +279,30 @@ export default function DialInTollFreePage() {
 
         {/* RIGHT COLUMN: Language & Quick Verbal Questions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 18 }}>
-          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#f59e0b', margin: 0 }}>
-            ??? Dialect & Verbal Prompts
+          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#f59e0b', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Globe size={18} color="#f59e0b" />
+            <span>Dialect & Verbal Prompts</span>
           </h2>
 
           <div>
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 700 }}>CHOOSE CALL LANGUAGE:</span>
             <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-              {(['hindi', 'tamil', 'english'] as const).map(lang => (
+              {([
+                { id: 'english', label: 'English' },
+                { id: 'hindi', label: 'हिंदी (Hindi)' },
+                { id: 'tamil', label: 'தமிழ் (Tamil)' },
+              ] as const).map(item => (
                 <button
-                  key={lang}
-                  onClick={() => setLanguage(lang)}
+                  key={item.id}
+                  onClick={() => setLanguage(item.id)}
                   style={{
-                    flex: 1, padding: '8px 0', borderRadius: 8, border: 'none',
-                    background: language === lang ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
-                    color: language === lang ? '#00d4ff' : 'rgba(255,255,255,0.5)',
-                    fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit', textTransform: 'capitalize',
+                    flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none',
+                    background: language === item.id ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
+                    color: language === item.id ? '#00d4ff' : 'rgba(255,255,255,0.5)',
+                    fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
                   }}
                 >
-                  {lang === 'hindi' ? '???? Hindi' : lang === 'tamil' ? '???? Tamil' : '?? English'}
+                  {item.label}
                 </button>
               ))}
             </div>
@@ -301,12 +310,16 @@ export default function DialInTollFreePage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 700 }}>
-              SIMULATE STUDENT VERBAL QUESTION:
+              TEST STUDENT SPOKEN QUESTION:
             </span>
 
             {[
-              { text: language === 'hindi' ? '??? ?? ????? ???? ???? ???' : language === 'tamil' ? '??????? ???? ??????? ?????' : "What is Newton\'s Third Law?", icon: '?' },
-              { text: language === 'hindi' ? '????? ?? ?????? ?? ????? ?? ?????? ??????' : language === 'tamil' ? '?????? ????????? ?????' : 'Explain Torque and lever arm formula', icon: '??' },
+              {
+                text: language === 'hindi' ? 'न्यूटन का तीसरा नियम क्या है?' : language === 'tamil' ? 'நியூட்டனின் மூன்றாவது விதி என்ன?' : "What is Newton's Third Law?",
+              },
+              {
+                text: language === 'hindi' ? 'टॉर्क और लीवर आर्म के बारे में बताएं' : language === 'tamil' ? 'டார்க் (Torque) பற்றி விளக்குங்கள்' : 'Explain Torque and lever arm formula',
+              },
             ].map((q, i) => (
               <button
                 key={i}
@@ -318,15 +331,18 @@ export default function DialInTollFreePage() {
                   border: `1px solid ${callState === 'connected' ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.05)'}`,
                   color: callState === 'connected' ? '#f59e0b' : 'rgba(255,255,255,0.3)',
                   cursor: callState === 'connected' ? 'pointer' : 'not-allowed', fontFamily: 'Outfit',
+                  display: 'flex', alignItems: 'center', gap: 8,
                 }}
               >
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{q.icon} Speak: "{q.text}"</div>
+                <Mic size={15} style={{ flexShrink: 0 }} />
+                <div style={{ fontSize: 13, fontWeight: 600 }}>Speak: "{q.text}"</div>
               </button>
             ))}
           </div>
 
-          <div style={{ marginTop: 'auto', padding: 12, borderRadius: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', fontSize: 11, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>
-            <strong style={{ color: '#f59e0b' }}>Digital Divide Solution:</strong> Students with no internet or smartphone dial a standard cellular number. The SIP trunk streams directly to Gemini Flash for real-time Socratic dialogue.
+          <div style={{ marginTop: 'auto', padding: 14, borderRadius: 12, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', fontSize: 11, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+            <strong style={{ color: '#f59e0b', display: 'block', marginBottom: 4 }}>How It Works:</strong>
+            Students with no internet or smartphone can dial a standard phone number. The audio is routed to AI Socratic speech agents for real-time back-and-forth tutoring.
           </div>
         </div>
 

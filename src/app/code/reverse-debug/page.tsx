@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Bug, Timer, CheckCircle2, AlertCircle, ArrowLeft, HelpCircle, ShieldCheck, Code, Sparkles } from 'lucide-react';
 
 interface BugChallenge {
   id: string;
@@ -157,12 +158,12 @@ export default function ReverseDebuggerPage() {
     if (lineCorrect && hypCorrect) {
       setVerificationResult({
         passed: true,
-        message: '?? FLAW PINPOINTED & FIXED! All edge cases passed in 14ms. +350 Forensic Bug Hunter XP awarded!'
+        message: 'FLAW PINPOINTED & FIXED! All edge cases passed in 14ms. +350 Forensic Bug Hunter XP awarded!'
       });
     } else {
       setVerificationResult({
         passed: false,
-        message: !lineCorrect ? `? Incorrect line pinpointed (Selected Line ${selectedLine}, but defect is elsewhere).` : '? Hypothesis incorrect: that is not the root mechanism of this failure.'
+        message: !lineCorrect ? `Incorrect line pinpointed (Selected Line ${selectedLine}, but defect is elsewhere).` : 'Hypothesis incorrect: that is not the root mechanism of this failure.'
       });
     }
   };
@@ -182,22 +183,24 @@ export default function ReverseDebuggerPage() {
         backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, flexWrap: 'wrap', gap: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/code" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700 }}>
-            ? Back to Code Studio
+          <Link href="/code" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ArrowLeft size={16} />
+            <span>Back to Code Studio</span>
           </Link>
           <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
           <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>???</span>
-            <span>AI "Cheat-Proof" Reverse Debugger Arena</span>
+            <Bug size={18} color="#f87171" />
+            <span>AI Reverse Debugger Arena (Forensic Code Audit)</span>
           </h1>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ padding: '6px 14px', borderRadius: 8, background: timeLeft < 30 ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.15)', border: `1px solid ${timeLeft < 30 ? '#ef4444' : '#f59e0b'}`, color: timeLeft < 30 ? '#ef4444' : '#f59e0b', fontWeight: 700, fontFamily: 'JetBrains Mono', fontSize: 13 }}>
-            ?? Timer: {formatTime(timeLeft)}
+          <div style={{ padding: '6px 14px', borderRadius: 8, background: timeLeft < 30 ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.15)', border: `1px solid ${timeLeft < 30 ? '#ef4444' : '#f59e0b'}`, color: timeLeft < 30 ? '#ef4444' : '#f59e0b', fontWeight: 700, fontFamily: 'JetBrains Mono', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Timer size={14} />
+            <span>Timer: {formatTime(timeLeft)}</span>
           </div>
           <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 8, background: 'rgba(168,85,247,0.2)', color: '#c084fc', fontWeight: 700 }}>
-            Forensic Coding Mode
+            Forensic Mode
           </span>
         </div>
       </div>
@@ -213,7 +216,7 @@ export default function ReverseDebuggerPage() {
               Bug Injections
             </h2>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
-              AI tools write boilerplate code, but can you reverse-engineer a subtle production anomaly?
+              AI can generate code, but can you reverse-engineer a subtle production anomaly and explain why it failed?
             </p>
           </div>
 
@@ -244,7 +247,10 @@ export default function ReverseDebuggerPage() {
 
           {/* Failing Testcase Alert */}
           <div style={{ padding: 12, borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', marginTop: 'auto' }}>
-            <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 700, marginBottom: 4 }}>?? CRITICAL RUNTIME FAILURE:</div>
+            <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <AlertCircle size={14} />
+              <span>CRITICAL RUNTIME FAILURE:</span>
+            </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', fontFamily: 'JetBrains Mono', lineHeight: 1.5 }}>
               {activeChallenge.failingTestCase}
             </div>
@@ -296,8 +302,9 @@ export default function ReverseDebuggerPage() {
 
         {/* RIGHT COLUMN: Hypothesis & Patch Verification */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 18 }}>
-          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#f59e0b', margin: 0 }}>
-            ?? Step 2: Formulate Hypothesis
+          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#f59e0b', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <HelpCircle size={18} color="#f59e0b" />
+            <span>Step 2: Formulate Hypothesis</span>
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -338,9 +345,11 @@ export default function ReverseDebuggerPage() {
               padding: '10px 20px', borderRadius: 10, border: 'none',
               background: 'linear-gradient(135deg, #ef4444, #f59e0b)', color: 'white',
               fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit', fontSize: 13,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
-            ? Test & Verify Forensic Fix
+            <ShieldCheck size={16} />
+            <span>Test & Verify Forensic Fix</span>
           </button>
 
           {verificationResult && (
@@ -349,8 +358,10 @@ export default function ReverseDebuggerPage() {
               background: verificationResult.passed ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
               border: `1px solid ${verificationResult.passed ? '#10b981' : '#ef4444'}`,
               fontSize: 12, lineHeight: 1.5, color: verificationResult.passed ? '#10b981' : '#ef4444',
+              display: 'flex', alignItems: 'flex-start', gap: 8,
             }}>
-              {verificationResult.message}
+              {verificationResult.passed ? <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: 2 }} /> : <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />}
+              <span>{verificationResult.message}</span>
             </div>
           )}
         </div>

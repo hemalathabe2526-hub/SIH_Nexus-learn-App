@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Sparkles, Camera, Mic, MessageSquare, PhoneCall, Wifi, Box, Bug, Swords, Award } from 'lucide-react';
 import { getStoredSession, logoutUser, canAccessRoleContent, type UserRole, type UserProfile } from '@/lib/authStore';
 import { ROLE_SYLLABUS, getCombinedSyllabus } from '@/lib/syllabusData';
 
@@ -306,60 +307,68 @@ export default function DashboardPage() {
       </div>
 
       <div style={{ maxWidth: 1300, margin: '0 auto', padding: '28px 24px' }}>
-        {/* High-Impact Innovation Suite Showcase Banner */}
+        {/* Next-Gen Smart Learning Suite Showcase Banner */}
         <div style={{
-          padding: '16px 20px', borderRadius: 16, marginBottom: 24,
-          background: 'linear-gradient(135deg, rgba(0,102,255,0.08), rgba(168,85,247,0.08), rgba(16,185,129,0.08))',
-          border: '1px solid rgba(0,212,255,0.25)', display: 'flex', flexDirection: 'column', gap: 12,
+          padding: '20px 22px', borderRadius: 16, marginBottom: 24,
+          background: 'linear-gradient(135deg, rgba(0,102,255,0.09), rgba(168,85,247,0.09), rgba(16,185,129,0.09))',
+          border: '1px solid rgba(0,212,255,0.25)', display: 'flex', flexDirection: 'column', gap: 14,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 18 }}>??</span>
-              <span style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 14, color: '#00d4ff', letterSpacing: 0.5 }}>
-                HIGH-IMPACT INNOVATION SUITE (ACCESSIBILITY LADDER & DIGITAL DIVIDE)
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(0,212,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#00d4ff' }}>
+                <Sparkles size={18} />
+              </div>
+              <div>
+                <span style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 15, color: '#00d4ff', letterSpacing: 0.3, display: 'block' }}>
+                  Smart Learning Suite & Accessibility Tools
+                </span>
+                <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                  Learn anywhere — high-speed internet, low-data, or offline
+                </span>
+              </div>
             </div>
-            <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: 'rgba(16,185,129,0.2)', color: '#10b981', fontWeight: 700 }}>
-              Live SIH Features Active
+            <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, background: 'rgba(16,185,129,0.15)', color: '#10b981', fontWeight: 700, border: '1px solid rgba(16,185,129,0.3)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }}></span>
+              All 9 Modules Ready
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
-            <Link href="/virtuallab/snap" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,212,255,0.2)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>??</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+            <Link href="/virtuallab/snap" style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,212,255,0.2)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.2s' }}>
+              <Camera size={16} color="#00d4ff" />
               <span>Snap & Simulate 3D</span>
             </Link>
-            <Link href="/viva" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(16,185,129,0.2)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>???</span>
-              <span>Socratic Viva Voice</span>
+            <Link href="/viva" style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(16,185,129,0.2)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.2s' }}>
+              <Mic size={16} color="#10b981" />
+              <span>Socratic Voice Viva</span>
             </Link>
-            <Link href="/whatsapp-lms" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,168,132,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>??</span>
-              <span>WhatsApp Micro-LMS</span>
+            <Link href="/whatsapp-lms" style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,168,132,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.2s' }}>
+              <MessageSquare size={16} color="#25d366" />
+              <span>WhatsApp Study Bot</span>
             </Link>
-            <Link href="/dial-in" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(245,158,11,0.2)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>??</span>
-              <span>1800 Toll-Free Call</span>
+            <Link href="/dial-in" style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(245,158,11,0.25)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.2s' }}>
+              <PhoneCall size={16} color="#f59e0b" />
+              <span>1800 Free Phone Tutor</span>
             </Link>
-            <Link href="/mesh" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(16,185,129,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>??</span>
-              <span>Village Mesh Swarm</span>
+            <Link href="/mesh" style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(16,185,129,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.2s' }}>
+              <Wifi size={16} color="#34d399" />
+              <span>Offline Village Mesh</span>
             </Link>
-            <Link href="/virtuallab/ar" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(168,85,247,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>??</span>
-              <span>Desk WebXR AR</span>
+            <Link href="/virtuallab/ar" style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(168,85,247,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.2s' }}>
+              <Box size={16} color="#c084fc" />
+              <span>Study Desk AR</span>
             </Link>
-            <Link href="/code/reverse-debug" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(239,68,68,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>???</span>
-              <span>Reverse Debugger</span>
+            <Link href="/code/reverse-debug" style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(239,68,68,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.2s' }}>
+              <Bug size={16} color="#f87171" />
+              <span>Reverse Bug Hunter</span>
             </Link>
-            <Link href="/rpg-multiplayer" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(245,158,11,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>??</span>
-              <span>Co-Op Dungeon Raid</span>
+            <Link href="/rpg-multiplayer" style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(245,158,11,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.2s' }}>
+              <Swords size={16} color="#fbbf24" />
+              <span>Co-Op Study Battle</span>
             </Link>
-            <Link href="/credentials" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,212,255,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>??</span>
-              <span>Open Badges 3.0</span>
+            <Link href="/credentials" style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,212,255,0.3)', color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.2s' }}>
+              <Award size={16} color="#38bdf8" />
+              <span>Verified Open Badges</span>
             </Link>
           </div>
         </div>

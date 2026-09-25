@@ -2,41 +2,26 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Award, CheckCircle2, Copy, FileCode, ExternalLink, ArrowLeft, Code, Calculator, FlaskConical, ShieldCheck, Check } from 'lucide-react';
 
 interface VerifiableCredential {
   id: string;
   skill: string;
   subject: string;
-  level: string;
+  level: 'Novice' | 'Proficient' | 'Advanced' | 'Master';
   score: number;
   date: string;
   hash: string;
   issuer: string;
   txHash: string;
   color: string;
-  icon: string;
+  iconType: 'math' | 'code' | 'chem';
   openBadgeStandard: 'Open Badges 3.0' | 'W3C Verifiable Credential';
   criteria: string;
   recipientHash: string;
 }
 
 const CREDENTIALS: VerifiableCredential[] = [
-  {
-    id: 'PHY-001',
-    skill: 'Classical Mechanics & Torque Equilibrium',
-    subject: 'Physics',
-    level: 'Expert',
-    score: 94,
-    date: '2026-08-15',
-    hash: '0x3f4a9b2ec718e4d8a109bf4321',
-    issuer: 'NEXUS LEARN ? AICTE & W3C Verified',
-    txHash: '0x7e3c4f2a1b9d6e8c09a8bf7e',
-    color: '#0066ff',
-    icon: '?',
-    openBadgeStandard: 'Open Badges 3.0',
-    criteria: 'https://nexus-learn.edu/criteria/classical-mechanics-v3',
-    recipientHash: 'did:key:z6MkhaXgBZDvotDkL5257faiz4898G'
-  },
   {
     id: 'MATH-003',
     skill: 'Integral Calculus & Vector Calculus',
@@ -45,10 +30,10 @@ const CREDENTIALS: VerifiableCredential[] = [
     score: 87,
     date: '2026-08-10',
     hash: '0xa1c94f7d8e2b6a3c91f0e4b8',
-    issuer: 'NEXUS LEARN ? AICTE & W3C Verified',
+    issuer: 'NEXUS LEARN • AICTE & W3C Verified',
     txHash: '0x2a5d8e9c3f1b6a4c7e8d0a1b',
     color: '#7c3aed',
-    icon: '??',
+    iconType: 'math',
     openBadgeStandard: 'W3C Verifiable Credential',
     criteria: 'https://nexus-learn.edu/criteria/integral-calculus-v2',
     recipientHash: 'did:key:z6MkhaXgBZDvotDkL5257faiz4898G'
@@ -61,10 +46,10 @@ const CREDENTIALS: VerifiableCredential[] = [
     score: 91,
     date: '2026-08-05',
     hash: '0x6b2e7c3a8f1e4d9c02b5a7e1',
-    issuer: 'NEXUS LEARN ? AICTE & W3C Verified',
+    issuer: 'NEXUS LEARN • AICTE & W3C Verified',
     txHash: '0x8f3a2b1c9d5e7f6a3c4b0e9d',
     color: '#00d4ff',
-    icon: '??',
+    iconType: 'code',
     openBadgeStandard: 'Open Badges 3.0',
     criteria: 'https://nexus-learn.edu/criteria/dsa-algorithms-v3',
     recipientHash: 'did:key:z6MkhaXgBZDvotDkL5257faiz4898G'
@@ -77,10 +62,10 @@ const CREDENTIALS: VerifiableCredential[] = [
     score: 96,
     date: '2026-07-28',
     hash: '0x9d5f2e8b4a7c1f0e6d3a8b2c',
-    issuer: 'NEXUS LEARN ? AICTE & W3C Verified',
+    issuer: 'NEXUS LEARN • AICTE & W3C Verified',
     txHash: '0x5c7a4b3e1d9f2a8c7e4d0b1a',
     color: '#10b981',
-    icon: '??',
+    iconType: 'chem',
     openBadgeStandard: 'W3C Verifiable Credential',
     criteria: 'https://nexus-learn.edu/criteria/thermodynamics-kinetics-v1',
     recipientHash: 'did:key:z6MkhaXgBZDvotDkL5257faiz4898G'
@@ -111,25 +96,31 @@ export default function CredentialsPage() {
         id: selectedCred.criteria,
         type: ['Achievement'],
         name: selectedCred.skill,
-        description: `Demonstrated ${selectedCred.level} mastery in ${selectedCred.subject} with ${selectedCred.score}% assessment score.`,
-        criteria: { narrative: 'Successfully completed interactive 3D virtual experiments, coding judge challenges, and oral Socratic viva defenses.' }
+        description: `Verified completion of ${selectedCred.subject} with ${selectedCred.score}% mastery.`,
+        criteria: { narrative: 'Rigorous interactive lab assessment and adversarial reverse debugging exams.' }
       }
     },
     proof: {
       type: 'Ed25519Signature2020',
-      created: `${selectedCred.date}T10:02:15Z`,
-      verificationMethod: 'did:web:sih-nexus-learn-app.vercel.app#key-1',
+      created: `${selectedCred.date}T10:00:05Z`,
       proofPurpose: 'assertionMethod',
-      jws: selectedCred.hash
+      verificationMethod: 'did:web:sih-nexus-learn-app.vercel.app#key-1',
+      proofValue: selectedCred.hash
     }
   };
 
-  const handleCopyJsonLd = async () => {
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(jsonLdPayload, null, 2));
+  const handleCopyJsonLd = () => {
+    if (typeof navigator !== 'undefined') {
+      navigator.clipboard.writeText(JSON.stringify(jsonLdPayload, null, 2));
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 3000);
-    } catch {}
+      setTimeout(() => setIsCopied(false), 2000);
+    }
+  };
+
+  const renderBadgeIcon = (type: 'math' | 'code' | 'chem', size = 20) => {
+    if (type === 'math') return <Calculator size={size} />;
+    if (type === 'code') return <Code size={size} />;
+    return <FlaskConical size={size} />;
   };
 
   return (
@@ -141,19 +132,21 @@ export default function CredentialsPage() {
         backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, flexWrap: 'wrap', gap: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/dashboard" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700 }}>
-            ? Back to Dashboard
+          <Link href="/dashboard" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ArrowLeft size={16} />
+            <span>Back to Dashboard</span>
           </Link>
           <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
           <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>??</span>
+            <Award size={18} color="#00d4ff" />
             <span>Verifiable Proof-of-Skill On-Chain Badging (Open Badges 3.0 & W3C VC)</span>
           </h1>
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
-          <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 8, background: 'rgba(16,185,129,0.2)', color: '#10b981', fontWeight: 700 }}>
-            W3C Cryptographic Proof Valid
+          <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 8, background: 'rgba(16,185,129,0.2)', color: '#10b981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ShieldCheck size={14} />
+            <span>W3C Cryptographic Proof Valid</span>
           </span>
         </div>
       </div>
@@ -168,7 +161,7 @@ export default function CredentialsPage() {
               Earned Academic Badges
             </h2>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
-              Tamper-proof verifiable credentials issued upon defeating bosses, solving coding judges, and completing virtual labs.
+              Tamper-proof verifiable credentials issued upon defeating bosses, solving coding challenges, and completing virtual labs.
             </p>
           </div>
 
@@ -185,7 +178,9 @@ export default function CredentialsPage() {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 20 }}>{cred.icon}</span>
+                  <div style={{ color: cred.color }}>
+                    {renderBadgeIcon(cred.iconType, 20)}
+                  </div>
                   <span style={{
                     fontSize: 10, padding: '2px 8px', borderRadius: 6, fontWeight: 700,
                     background: `${cred.color}25`, color: cred.color,
@@ -216,18 +211,18 @@ export default function CredentialsPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: `${selectedCred.color}20`, color: selectedCred.color, fontWeight: 700 }}>
-                  W3C VERIFIABLE CREDENTIAL ? OPEN BADGES 3.0
+                  W3C VERIFIABLE CREDENTIAL • OPEN BADGES 3.0
                 </span>
                 <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 26, color: 'white', margin: '10px 0 4px' }}>
                   {selectedCred.skill}
                 </h2>
                 <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
-                  Level: <strong style={{ color: selectedCred.color }}>{selectedCred.level}</strong> ? Subject: <strong>{selectedCred.subject}</strong>
+                  Level: <strong style={{ color: selectedCred.color }}>{selectedCred.level}</strong> • Subject: <strong>{selectedCred.subject}</strong>
                 </div>
               </div>
 
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${selectedCred.color}20`, border: `2px solid ${selectedCred.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
-                {selectedCred.icon}
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${selectedCred.color}20`, border: `2px solid ${selectedCred.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: selectedCred.color }}>
+                {renderBadgeIcon(selectedCred.iconType, 28)}
               </div>
             </div>
 
@@ -253,9 +248,11 @@ export default function CredentialsPage() {
                 style={{
                   padding: '9px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)',
                   background: 'rgba(255,255,255,0.06)', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit', fontSize: 12,
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
                 }}
               >
-                {viewJsonLd ? '?? Hide W3C JSON-LD' : '?? Inspect W3C JSON-LD Proof'}
+                <FileCode size={14} />
+                <span>{viewJsonLd ? 'Hide W3C JSON-LD' : 'Inspect W3C JSON-LD Proof'}</span>
               </button>
 
               <button
@@ -264,19 +261,23 @@ export default function CredentialsPage() {
                   padding: '9px 18px', borderRadius: 8, border: 'none',
                   background: 'linear-gradient(135deg, #0066ff, #00d4ff)', color: 'white',
                   fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit', fontSize: 12,
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
                 }}
               >
-                {isCopied ? '? JSON-LD Copied!' : '?? Export Cryptographic VC'}
+                {isCopied ? <Check size={14} /> : <Copy size={14} />}
+                <span>{isCopied ? 'JSON-LD Copied!' : 'Export Cryptographic VC'}</span>
               </button>
 
               <button
-                onClick={() => alert(`?? Credential "${selectedCred.skill}" prepared for LinkedIn profile integration with verifiable URL: https://sih-nexus-learn-app.vercel.app/credentials`)}
+                onClick={() => alert(`Credential "${selectedCred.skill}" prepared for LinkedIn profile integration with verifiable URL: https://sih-nexus-learn-app.vercel.app/credentials`)}
                 style={{
                   padding: '9px 18px', borderRadius: 8, border: '1px solid #0a66c2',
                   background: '#0a66c2', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit', fontSize: 12,
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
                 }}
               >
-                ?? Add to LinkedIn Profile
+                <ExternalLink size={14} />
+                <span>Add to LinkedIn Profile</span>
               </button>
             </div>
           </div>
@@ -288,9 +289,9 @@ export default function CredentialsPage() {
                 <span style={{ fontSize: 11, color: '#00d4ff', fontWeight: 700, fontFamily: 'Space Grotesk' }}>
                   W3C VERIFIABLE CREDENTIAL PAYLOAD (ED25519 SIGNATURE)
                 </span>
-                <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700 }}>CRYPTOGRAPHIC INTEGRITY: VERIFIED ?</span>
+                <span style={{ fontSize: 10, color: '#10b981', fontFamily: 'JetBrains Mono' }}>schema: OpenBadges v3.0</span>
               </div>
-              <pre style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontFamily: 'JetBrains Mono', maxHeight: 220, overflowY: 'auto' }}>
+              <pre style={{ margin: 0, padding: 12, borderRadius: 8, background: '#000', color: '#10b981', fontFamily: 'JetBrains Mono', fontSize: 11, lineHeight: 1.5, maxHeight: 220, overflowY: 'auto' }}>
                 {JSON.stringify(jsonLdPayload, null, 2)}
               </pre>
             </div>

@@ -2,42 +2,41 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Cpu, Wifi, WifiOff, PhoneCall, ArrowLeft, HardDrive, Sparkles, Code, Calculator, BookOpen, Zap } from 'lucide-react';
 
-export default function OfflinePage() {
+export default function OfflineEdgeAIPage() {
   const [isAirplaneMode, setIsAirplaneMode] = useState(true);
-  const [edgeQuery, setEdgeQuery] = useState('Why does light bend when entering water?');
+  const [edgeQuery, setEdgeQuery] = useState('');
+  const [activeTask, setActiveTask] = useState<'concept' | 'lint' | 'formula'>('concept');
   const [edgeResult, setEdgeResult] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeTask, setActiveTask] = useState<'concept' | 'lint' | 'formula'>('concept');
 
-  // Client-side Edge SLM Execution (SmolLM2 / Gemma-2B WebGPU representation)
+  // Simulate on-device WebGPU Small Language Model inference (SmolLM2-1B / Gemma-2B quantized)
   const runEdgeAiInference = () => {
     setIsProcessing(true);
-    setEdgeResult(null);
-
     setTimeout(() => {
       setIsProcessing(false);
       if (activeTask === 'concept') {
         setEdgeResult(
-          '? [Edge AI Engine: SmolLM2-1B (WebGPU Local Memory)]\n\n' +
+          '[Edge AI Engine: SmolLM2-1B (WebGPU Local Memory)]\n\n' +
           'Refraction occurs because light travels at different speeds in different optical media. ' +
-          'In water, the wave phase velocity drops to v = c / n (where n ? 1.33). ' +
-          'When the wavefront strikes the interface at an angle, one side slows down before the other, bending the trajectory toward the normal according to Snell\'s Law (n1 sin ?1 = n2 sin ?2).\n\n' +
-          '? Execution Time: 42 ms\n' +
-          '? Network Bytes Transferred: 0 Bytes (100% Offline On-Device Inference)'
+          'In water, the wave phase velocity drops to v = c / n (where n ≈ 1.33). ' +
+          'When the wavefront strikes the interface at an angle, one side slows down before the other, bending the trajectory toward the normal according to Snell\'s Law (n1 sin θ1 = n2 sin θ2).\n\n' +
+          '• Execution Time: 42 ms\n' +
+          '• Network Bytes Transferred: 0 Bytes (100% Offline On-Device Inference)'
         );
       } else if (activeTask === 'lint') {
         setEdgeResult(
-          '? [Edge AI Code Linter: On-Device AST Analyzer]\n\n' +
+          '[Edge AI Code Linter: On-Device AST Analyzer]\n\n' +
           'Checked input against local DSA grammar tree:\n' +
-          '? Syntax: Valid Python 3.11\n' +
-          '?? Warning: Recursive function call lacks base case depth limiter. In an offline environment with limited stack memory, recommend converting to iterative loop to prevent maximum recursion depth exceeded.'
+          '• Syntax: Valid Python 3.11\n' +
+          '• Warning: Recursive function call lacks base case depth limiter. In an offline environment with limited stack memory, recommend converting to iterative loop to prevent maximum recursion depth exceeded.'
         );
       } else {
         setEdgeResult(
-          '? [Edge AI Formula Solver: Local SymPy/Numeric Engine]\n\n' +
-          'Input: E = mc? for m = 1.0 kg\n' +
-          'Calculation: E = (1.0 kg) ? (2.998 ? 10? m/s)? = 8.98755 ? 10?? Joules\n' +
+          '[Edge AI Formula Solver: Local SymPy/Numeric Engine]\n\n' +
+          'Input: E = mc² for m = 1.0 kg\n' +
+          'Calculation: E = (1.0 kg) × (2.998 × 10⁸ m/s)² = 8.98755 × 10¹⁶ Joules\n' +
           'Equivalent Energy: ~21.48 Megatons of TNT explosive equivalent.'
         );
       }
@@ -53,22 +52,25 @@ export default function OfflinePage() {
         backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, flexWrap: 'wrap', gap: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/dashboard" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700 }}>
-            ? Back to Dashboard
+          <Link href="/dashboard" style={{ textDecoration: 'none', color: '#00d4ff', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ArrowLeft size={16} />
+            <span>Back to Dashboard</span>
           </Link>
           <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
           <h1 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>??</span>
+            <Cpu size={18} color="#00d4ff" />
             <span>Offline Edge AI & Zero-Data Learning Hub</span>
           </h1>
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
-          <Link href="/mesh" style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>
-            ?? Launch Village Mesh Swarm ?
+          <Link href="/mesh" style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Wifi size={14} />
+            <span>Village Mesh Swarm</span>
           </Link>
-          <Link href="/dial-in" style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', color: '#f59e0b', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>
-            ?? 1800 Toll-Free Call ?
+          <Link href="/dial-in" style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', color: '#f59e0b', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <PhoneCall size={14} />
+            <span>1800 Toll-Free Call</span>
           </Link>
         </div>
       </div>
@@ -81,7 +83,7 @@ export default function OfflinePage() {
           {/* Offline Status Card */}
           <div style={{ padding: 18, borderRadius: 14, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 24 }}>??</span>
+              <WifiOff size={24} color="#ef4444" />
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#ef4444' }}>Airplane Mode / Zero Cellular Signal Simulation</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>Cloud APIs disabled. Routing all intelligence to on-device WebGPU Small Language Model.</div>
@@ -90,7 +92,7 @@ export default function OfflinePage() {
             <button
               onClick={() => setIsAirplaneMode(!isAirplaneMode)}
               style={{
-                padding: '6px 14px', borderRadius: 8, border: 'none',
+                padding: '8px 16px', borderRadius: 8, border: 'none',
                 background: isAirplaneMode ? '#ef4444' : '#10b981', color: '#fff',
                 fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'Outfit',
               }}
@@ -102,37 +104,43 @@ export default function OfflinePage() {
           {/* Edge AI Tasks */}
           <div style={{ borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#00d4ff', margin: 0 }}>
-                ? On-Device Small Language Model (SmolLM2 / Gemma-2B)
+              <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#00d4ff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Zap size={16} />
+                <span>On-Device Small Language Model (SmolLM2 / Gemma-2B)</span>
               </h3>
               <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: 'rgba(0,212,255,0.15)', color: '#00d4ff', fontWeight: 700 }}>
-                WebGPU Accelerated ? 0 MB Data
+                WebGPU Accelerated • 0 MB Data
               </span>
             </div>
 
             {/* Task Tabs */}
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               {[
-                { id: 'concept', label: '?? Concept Explanation' },
-                { id: 'lint', label: '?? Offline Code Audit' },
-                { id: 'formula', label: '?? Formula Solver' },
-              ].map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => {
-                    setActiveTask(t.id as any);
-                    setEdgeResult(null);
-                  }}
-                  style={{
-                    padding: '8px 14px', borderRadius: 8, border: 'none',
-                    background: activeTask === t.id ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
-                    color: activeTask === t.id ? '#00d4ff' : 'rgba(255,255,255,0.5)',
-                    fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
-                  }}
-                >
-                  {t.label}
-                </button>
-              ))}
+                { id: 'concept', label: 'Concept Explanation', icon: BookOpen },
+                { id: 'lint', label: 'Offline Code Audit', icon: Code },
+                { id: 'formula', label: 'Formula Solver', icon: Calculator },
+              ].map(t => {
+                const Icon = t.icon;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setActiveTask(t.id as any);
+                      setEdgeResult(null);
+                    }}
+                    style={{
+                      padding: '8px 14px', borderRadius: 8, border: 'none',
+                      background: activeTask === t.id ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
+                      color: activeTask === t.id ? '#00d4ff' : 'rgba(255,255,255,0.5)',
+                      fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit',
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    <Icon size={14} />
+                    <span>{t.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Input */}
@@ -155,9 +163,11 @@ export default function OfflinePage() {
                   padding: '12px 24px', borderRadius: 10, border: 'none',
                   background: 'linear-gradient(135deg, #10b981, #00d4ff)', color: 'white',
                   fontWeight: 700, fontSize: 13, cursor: isProcessing ? 'wait' : 'pointer', fontFamily: 'Outfit',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
                 }}
               >
-                {isProcessing ? '? Inferencing...' : '? Run On-Device AI'}
+                <Sparkles size={14} />
+                <span>{isProcessing ? 'Inferencing...' : 'Run On-Device AI'}</span>
               </button>
             </div>
 
@@ -174,8 +184,9 @@ export default function OfflinePage() {
 
         {/* RIGHT COLUMN: Offline Cache Stats & Quick Links */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', padding: 18 }}>
-          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#10b981', margin: 0 }}>
-            ?? Local IndexedDB Storage
+          <h2 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, color: '#10b981', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <HardDrive size={18} color="#10b981" />
+            <span>Local IndexedDB Offline Storage</span>
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
