@@ -10,6 +10,8 @@
 > **Next-generation adaptive educational operating system bridging the digital divide across Bharat and beyond through zero-data phone tutoring, multimodal vision-to-3D simulation, WebXR desk AR, and cryptographic on-chain skill passports.**
 
 ---
+## 🚀 Live Demo
+Live On https://sih-nexus-learn-app.vercel.app/
 
 ## 🌟 Executive Summary & Problem Statement
 
